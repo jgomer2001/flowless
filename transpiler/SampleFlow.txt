@@ -1,0 +1,38 @@
+Flow org.gluu.Main 
+Inputs:  a1 a2	  
+
+Try 2 times
+    output = Call validate msg
+    Quit When blah is boo
+    Otherwise
+       Log "it"
+    
+Match variabl to 
+    1
+        Call boo
+    a[2]
+        x=z
+        When a.a1 is true
+           Trigger myflow
+
+When a is 2 
+    Log it	
+Otherwise
+    Call fuck it
+    When true is false
+      Call damn it
+    
+a[3] = Call nss.tigre x[0] 
+b.c.d = Call como "1" -1 b2
+z = Call f 1.5
+
+Log "abc" efd
+
+object2 = {  ciego: 1 , o: "no", so: { return: 3.1}, n:false }
+
+object = { a: ce , b2: a[1], c:[]}
+
+arr = []
+
+arr = [ "aba", a[2], b, a.b.a, {damn:true}, []]
+Accept {a: "te 	2 ^ á"}   

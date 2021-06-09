@@ -1,0 +1,53 @@
+<?page title="Flowless playground alpha"?>
+<?taglib uri="http://www.zkoss.org/dsp/web/core" prefix="c"?>
+<?style type="text/css" src="style.css"?>
+<zk xmlns:w="client">
+
+<script>
+	function setValue(id, str) {
+		var widget =  zk.$('$' + id);
+		widget.setValue(str);
+	}
+	
+	zk.progressMonitor = zk.$extends(zk.Object, {
+		$init : function(uplder, filenm) {
+			setValue('progress', 'Uploading...');
+		},
+		update : function(sent, total) {
+			//this can be used to display progress %
+		},
+		destroy : function() {
+			setValue('progress', '');
+		}
+	});
+</script>
+
+<label class="big">Load and inspect assets</label>
+<separator spacing="30px" />
+<div viewModel="@('org.gluu.flowless.playground.assets.AssetsVM')">
+	<hbox width="100%" height="100%">
+		<vbox vflex="1">
+			<label value="File system viewer:" />
+			<tree vflex="1" width="400px" w:onSelect="javascript:setValue('content', 'Loading...')"
+				onSelect="@('selected', self.treechildren.items)" model="@load(vm.treeModel)">
+			</tree>
+		</vbox>
+		<!--splitter collapse="before" /-->
+		<vbox>
+			<label value="Selected file contents:" />
+			<textbox id="content" rows="28" cols="80" readonly="true" class="monospaced" value="@load(vm.contents)" />
+		</vbox>
+	</hbox>
+	<separator spacing="20px" />
+	<vbox>
+		<vbox>
+		   <label value="Use the button below to extract the contents of a zip file in the assets folder" />
+		   <label class="small" value="${c:cat3('(allowed file types inside: ', vm.allowedExtensions, ')')}" />
+		</vbox>
+		<button label="Upload file" onUpload="@('uploaded', event.media)"
+			upload="zk.progressMonitor,maxsize=10240,multiple=false,accept=application/zip" />
+		<label id="progress" class="small" value="" />
+	</vbox>
+</div>
+
+</zk>

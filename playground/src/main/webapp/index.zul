@@ -1,0 +1,32 @@
+<?page title="Flowless playground alpha"?>
+<?style type="text/css" src="style.css"?>
+<zk>
+	<include src="menu.zul" />
+    <p xmlns="native">
+    	<hr />
+        <b>Quick concepts first:</b>
+        <ul>
+        	<li>Flows
+        		<ul>
+        			<li>A flow is composed by chaining execution of tasks</li>
+        			<li>Flows are specified in a simple, restricted language (see <a href="" target="_blank">more</a>)</li>
+        			<li>A flow may be given inputs to drive its behaviour</li>
+        			<li>A flow may accept or reject the authentication attempt</li>
+        		</ul>
+        	</li>
+        	<li>Tasks
+        		<ul>
+        			<li>Tasks (the building blocks of a flow) come in two flavors: backend or UI</li>
+        			<li>Backend task are aimed at executing business logic (or utilitarian logic)</li>
+        			<li>UI tasks are only used to collect data from the user</li>
+        			<li>A task may receive inputs and must produce output</li> 
+        		</ul>
+        	</li>
+        	<li>Assets
+        		<ul>
+        			<li>These are elements needed to compose the UI elements: pages, CSS, javascript, etc.</li>
+        		</ul>
+        	</li>
+        </ul>
+    </p>
+</zk>

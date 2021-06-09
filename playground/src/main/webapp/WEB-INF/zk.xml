@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<zk>
+    <library-property>
+        <name>org.zkoss.util.label.web.charset</name>
+        <value>UTF-8</value>
+    </library-property>
+    <library-property>
+        <name>org.zkoss.zul.tablet.meta.viewport.disabled</name>
+        <value>true</value>
+    </library-property>
+    <!--desktop-config>
+        <file-check-period>10</file-check-period>
+    </desktop-config-->
+    <listener>
+        <listener-class>org.gluu.flowless.playground.ZKInitializer</listener-class>
+    </listener>
+    <!--system-config>
+        <ui-factory-class>org.gluu.flowless.playground.UIFactory</ui-factory-class>
+    </system-config-->
+</zk>
