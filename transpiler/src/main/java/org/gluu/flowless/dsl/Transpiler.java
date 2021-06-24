@@ -10,15 +10,22 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.Serializer;
 import net.sf.saxon.s9api.StaticError;
+import net.sf.saxon.s9api.XPathCompiler;
+import net.sf.saxon.s9api.XdmItem;
+import net.sf.saxon.s9api.XdmNode;
 import net.sf.saxon.s9api.Xslt30Transformer;
 import net.sf.saxon.s9api.XsltCompiler;
 import net.sf.saxon.s9api.XsltExecutable;
@@ -43,23 +50,32 @@ public class Transpiler {
 
     private static final Charset utf8 = StandardCharsets.UTF_8;
     private static final String XSL_LOCATION = "JSGenerator.xsl";
-    private static final List<String> emptyList = Collections.emptyList();
 
     private Logger logger = LoggerFactory.getLogger(getClass());
-    private List<String> taskNames;
-    private List<String> flowNames;
+    private String flowName;
+    private Set<String> taskNames;
+    private Set<String> flowNames;
 
     private Processor processor;
     private XsltExecutable stylesheet;
+    private XPathCompiler xpathCompiler;
 
-    private void initialize(List<String> taskNames, List<String> flowNames) throws TranspilerException {
+    private void initialize(String flowName,
+            List<String> taskNames, List<String> flowNames) throws TranspilerException {
 
-        this.taskNames = taskNames;
-        this.flowNames = flowNames;
+        this.flowName = flowName;
+        this.taskNames = Optional.ofNullable(taskNames).map(HashSet::new).orElse(null);
+        this.flowNames = Optional.ofNullable(flowNames).map(HashSet::new).orElse(null);
+        
+        if (Stream.of(flowNames, flowName).allMatch(Objects::nonNull)) {
+            flowNames.remove(flowName);
+        }
 
         processor = new Processor(false);
         List<StaticError> errors = new ArrayList<>();
 
+        xpathCompiler = processor.newXPathCompiler();
+        xpathCompiler.setCaching(true);
         XsltCompiler xsltCompiler = processor.newXsltCompiler();
         xsltCompiler.setErrorList(errors);
 
@@ -77,11 +93,12 @@ public class Transpiler {
     }
 
     public Transpiler() throws TranspilerException {
-        initialize(emptyList, emptyList);
+        initialize(null, null, null);
     }
 
-    public Transpiler(List<String> taskNames, List<String> flowNames) throws TranspilerException {
-        initialize(taskNames, flowNames);
+    public Transpiler(String flowName,
+            List<String> taskNames, List<String> flowNames) throws TranspilerException {
+        initialize(flowName, taskNames, flowNames);
     }
 
     public Source asXML(String DSLCode) throws SyntaxException, TranspilerException {
@@ -112,15 +129,16 @@ public class Transpiler {
             if (syntaxException != null) {
                 throw syntaxException;
             }
-            
+
             logger.debug("Traversing parse tree");
             //Generate XML representation
             XmlVisitor visitor = new XmlVisitor();
             SaplingDocument document = Saplings.doc().withChild(visitor.visitFlow(flowContext));
 
+            applyValidations(document);
             logXml(document);
             return document;
-            
+
         } catch (RecognitionException re) {
             Token offender = re.getOffendingToken();
             throw new SyntaxException(re.getMessage(), offender.getText(),
@@ -129,6 +147,13 @@ public class Transpiler {
 
     }
 
+    public List<String> getInputs(Source doc) throws SaxonApiException {
+        
+        XdmNode node = processor.newDocumentBuilder().build(doc);
+        return xpathCompiler.evaluate("/flow/header/inputs/param/text()", node)
+                    .stream().map(XdmItem::getStringValue).collect(Collectors.toList());
+    }
+    
     public String generateJS(Source doc) throws TranspilerException {
 
         try {
@@ -149,6 +174,48 @@ public class Transpiler {
 
     }
 
+    private void applyValidations(SaplingDocument doc) throws TranspilerException {
+
+        try {
+            XdmNode node = doc.toXdmNode(processor);
+            
+            if (flowName != null) {                
+                //validate flow name is consistent 
+                String name = xpathCompiler.evaluateSingle("/flow/header/qname/text()", node)
+                        .getStringValue();                
+                
+                if (!flowName.equals(name)) {
+                    throw new TranspilerException(
+                        String.format("Expecting flow name '%s', but '%s' was found", flowName, name));
+                }
+            }
+            
+            //Ensure only existing flows/tasks are referenced
+            checkUnknownInvocation("//invocation[@type=\"task_call\"]/call/qname/text()", taskNames, node);
+            checkUnknownInvocation("//invocation[@type=\"flow_call\"]/call/qname/text()", flowNames, node);
+
+        } catch (SaxonApiException se) {
+            throw new TranspilerException("Validation failed", se);
+        }
+        
+    }
+
+    private void checkUnknownInvocation(String xpathExpr, Set<String> known, XdmNode node) 
+            throws TranspilerException, SaxonApiException {
+        
+        if (known != null) {
+            List<String> invocations = xpathCompiler.evaluate(xpathExpr, node)
+                    .stream().map(XdmItem::getStringValue).collect(Collectors.toList());
+
+            for (String t : invocations) {
+                if (!known.contains(t)) {
+                    throw new TranspilerException("Invocation of unknown element '" + t + "'");
+                }
+            }
+        }
+
+    }
+    
     private void logXml(SaplingDocument doc) {
 
         try {
@@ -168,8 +235,11 @@ public class Transpiler {
 
     public static void main(String... args) throws Exception {
         String dslCode = new String(Files.readAllBytes(Paths.get(args[0])), utf8);
-        Transpiler tr = new Transpiler();
-        System.out.println("\n"+ tr.generateJS(tr.asXML(dslCode)));
+        /*java.util.Arrays.asList("validate", "nss.tigre", "boo")*/
+        Transpiler tr = new Transpiler("org.gluu.Main", null, null);
+        Source source = tr.asXML(dslCode);
+        //System.out.println(tr.getInputs(source));
+        //System.out.println("\n" + tr.generateJS(source));
     }
 
 }

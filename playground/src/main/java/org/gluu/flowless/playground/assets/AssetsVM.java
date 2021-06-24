@@ -5,8 +5,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -25,7 +23,6 @@ import org.zkoss.bind.annotation.Immutable;
 import org.zkoss.bind.annotation.Init;
 import org.zkoss.bind.annotation.NotifyChange;
 import org.zkoss.util.media.Media;
-import org.zkoss.zk.ui.Executions;
 import org.zkoss.zul.DefaultTreeModel;
 import org.zkoss.zul.Messagebox;
 import org.zkoss.zul.Treeitem;
@@ -59,9 +56,7 @@ public class AssetsVM {
     @Init
     public void init() {
 
-        basePath = Executions.getCurrent().getDesktop().getWebApp()
-                .getAttribute(ZKInitializer.BASE_PATH_ATTR).toString()
-                + File.separator + ASSETS_DIR;
+        basePath = ZKInitializer.getBasePath() + File.separator + ASSETS_DIR;
 
         textFileExtensions = Stream.of(TXT_EXTENSIONS).collect(Collectors.toSet());
         allowedExtensions = TreeModel.ALLOWED_EXTENSIONS.toString();
@@ -106,7 +101,7 @@ public class AssetsVM {
                 Path filePath = Paths.get(basePath, path.toArray(new String[0]));
                 logger.debug("File '{}' selected", filePath);
 
-                contents = new String(Files.readAllBytes(filePath), StandardCharsets.UTF_8);
+                contents = Utils.fileContents(filePath);
 
                 contents = contents.length() == 0 ? "empty file!" : contents;
             } else {

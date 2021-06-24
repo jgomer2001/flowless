@@ -1,0 +1,4 @@
+Flow %s 
+Inputs:  a1 a2	  
+
+Log "Hello world"

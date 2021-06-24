@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <zk>
+    <preference>
+        <name>org.zkoss.zk.ui.WebApp.name</name>
+        <value>Flowless playground</value>
+    </preference>
     <library-property>
         <name>org.zkoss.util.label.web.charset</name>
         <value>UTF-8</value>

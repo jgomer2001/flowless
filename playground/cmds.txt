@@ -1,0 +1,88 @@
+cd ~/Downloads/jetty/jetty-base
+export JETTY_HOME=~/Downloads/jetty/jetty-distribution-9.4.35.v20201120
+java -jar $JETTY_HOME/start.jar
+
+cd ~/gluu/git-projects/flowless/playground
+~/app/maven-3.6.3/bin/mvn -o compile
+
+localhost:8080/playground/
+
+//Generated at 2021-05-31T15:08:47.026-05:00
+function main
+    
+   
+        (
+        a1, a2
+        )
+     {
+    
+   
+        for (var i = 0; i &lt; 2; i++) {
+            
+      output = taskCall
+        ('validate')
+        
+        (
+        msg
+        )
+    
+      
+        if 
+        (equals(blah, boo))
+     {
+            break;
+        }
+        
+       else {
+          
+            
+        println
+        (
+        "it"
+        )
+    
+         
+       }
+    
+   
+        }
+    
+   if
+            
+        (equals(variabl, 1))
+    
+            {
+            taskCall
+        ('boo')
+        
+        (
+        
+        )
+        
+            }
+        else if
+            
+        (equals(variabl, a[2]))
+    
+            {
+            x = z       
+        if 
+        (equals(a.a1, true))
+     {
+        flowCall
+        ('myflow')
+        
+        (
+        
+        )
+    
+        }
+            
+            }
+        
+   
+   
+
+}
+
+

@@ -7,13 +7,18 @@ import org.zkoss.zk.ui.util.WebAppInit;
 
 public class ZKInitializer implements WebAppInit {
 
-    public static final String BASE_PATH_ATTR = "base-path";
+    private static final String BASE_PATH_ATTR = "base-path";
     
     private final Logger logger = LoggerFactory.getLogger(getClass());
+    private static String basePath;
+    
+    public static String getBasePath() {
+        return basePath;
+    }
     
     public void init(WebApp webApp) throws Exception {
         logger.info("PLAYGROUND INITIALIZED");
-        webApp.setAttribute(BASE_PATH_ATTR, webApp.getServletContext().getInitParameter(BASE_PATH_ATTR));
+        basePath = webApp.getServletContext().getInitParameter(BASE_PATH_ATTR);
     }
     
 }
