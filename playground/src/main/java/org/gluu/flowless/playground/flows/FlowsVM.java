@@ -187,18 +187,17 @@ public class FlowsVM {
 
     }
 
+    @NotifyChange("flow")
     public void update() throws IOException, SaxonApiException {
 
         try {
-            Transpiler tr = new Transpiler(flows.getSelection().stream().findFirst().get(),
+            String qname = flows.getSelection().stream().findFirst().get();
+            
+            Transpiler tr = new Transpiler(qname,
                     FlowElementsService.getTasksList().getY(), flows.getInnerList());
             Source xml = tr.asXML(flow.getCode());
             
             flow.setInputs(tr.getInputs(xml).toArray(new String[0]));
-            
-            String name = flow.getName();
-            String namespace = flow.getNamespace();
-            String qname = (namespace == null ? "" : (namespace + ".")) + name;
 
             String path = basePath + File.separator + qname;            
             logger.debug("Updating basic flow files");
@@ -211,6 +210,7 @@ public class FlowsVM {
             
             String jsString = tr.generateJS(xml);   
             Utils.contentsToFile(Paths.get(path + ".js"),  jsString);
+            
         } catch (TranspilerException te) {
             logger.error(te.getMessage(), te);
             Messagebox.show(te.getMessage(), "Transpiler error", Messagebox.OK, Messagebox.EXCLAMATION);

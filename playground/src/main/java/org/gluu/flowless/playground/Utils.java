@@ -19,19 +19,5 @@ public class Utils {
     public static void contentsToFile(Path path, String contents) throws IOException {
         Files.write(path, contents.getBytes());
     }
-/*
-import com.twilio.Twilio;
-import com.twilio.rest.api.v2010.account.Message;
-import com.twilio.type.PhoneNumber;
-    
-    public static void main(String ...args) throws Exception {
-Twilio.init("ACda98f9f158a7dfb51e4bb687de0fd13e", "bb3c25fba009e748e815c209870c7722");
-String number ="+5511948839174";
-String body="Hi gluuer, this is a Jose casa test";
-String fromNumber="15122714951";
-Message message = Message.creator(new PhoneNumber(number), new PhoneNumber(fromNumber), body).create();
-Message.Status statusMsg = message.getStatus();
-System.out.println("Message delivery status was "+ statusMsg.toString());
-    }
-*/ 
+
 }
