@@ -19,6 +19,7 @@ import java.util.stream.Stream;
 import javax.xml.transform.Source;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.SaxonApiException;
+import net.sf.saxon.s9api.Serializer;
 import org.gluu.flowless.dsl.Transpiler;
 import org.gluu.flowless.dsl.TranspilerException;
 import org.gluu.flowless.dsl.error.SyntaxException;
@@ -203,7 +204,9 @@ public class FlowsVM {
             logger.debug("Updating basic flow files");
             store(flow, Paths.get(path));
             
-            String xmlString = processor.newSerializer().serializeToString(xml);
+            Serializer serializer = processor.newSerializer();
+            serializer.setOutputProperty(Serializer.Property.INDENT, "true");
+            String xmlString = serializer.serializeToString(xml);
 
             logger.info("Saving XML and javascript representations");
             Utils.contentsToFile(Paths.get(path + ".xml"),  xmlString);
@@ -211,12 +214,15 @@ public class FlowsVM {
             String jsString = tr.generateJS(xml);   
             Utils.contentsToFile(Paths.get(path + ".js"),  jsString);
             
+            Messagebox.show("Successful operation", null, Messagebox.OK, Messagebox.INFORMATION);
+            
         } catch (TranspilerException te) {
             logger.error(te.getMessage(), te);
             Messagebox.show(te.getMessage(), "Transpiler error", Messagebox.OK, Messagebox.EXCLAMATION);
         } catch (SyntaxException se) {
             logger.error(se.getMessage(), se);
-            Messagebox.show(se.getMessage(), "Syntax error", Messagebox.OK, Messagebox.EXCLAMATION);
+            String err = String.format("%s\nLine: %d, Column: %d", se.getMessage(), se.getLine(), se.getColumn());
+            Messagebox.show(err, "Syntax error", Messagebox.OK, Messagebox.EXCLAMATION);
         }
         
     }

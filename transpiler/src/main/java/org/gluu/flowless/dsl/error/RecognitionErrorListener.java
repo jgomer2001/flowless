@@ -18,7 +18,8 @@ public class RecognitionErrorListener extends BaseErrorListener {
             int charPositionInLine, String msg, RecognitionException exception) {
 
         error = new SyntaxException(msg,
-                Optional.ofNullable(offendingSymbol).map(Object::toString).orElse(null), line, charPositionInLine);
+                Optional.ofNullable(offendingSymbol).map(Object::toString)
+                        .orElse(null), line, charPositionInLine);
 
     }
 

@@ -31,6 +31,7 @@ import net.sf.saxon.s9api.XsltCompiler;
 import net.sf.saxon.s9api.XsltExecutable;
 import net.sf.saxon.sapling.SaplingDocument;
 import net.sf.saxon.sapling.Saplings;
+import org.antlr.v4.runtime.ANTLRErrorListener;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -115,17 +116,22 @@ public class Transpiler {
         }
 
         AuthnFlowLexer lexer = new AuthnFlowLexer(input);
+        RecognitionErrorListener lexerErrListener = new RecognitionErrorListener();
+        lexer.addErrorListener(lexerErrListener);
         logger.debug("Lexer for grammar '{}' initialized", lexer.getGrammarFileName());
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-
+        
         logger.debug("Creating parser");
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
         AuthnFlowParser parser = new AuthnFlowParser(tokens);
-        RecognitionErrorListener errListener = new RecognitionErrorListener();
-        parser.addErrorListener(errListener);
+        RecognitionErrorListener parserErrListener = new RecognitionErrorListener();
+        parser.addErrorListener(parserErrListener);
 
         try {
             AuthnFlowParser.FlowContext flowContext = parser.flow();
-            SyntaxException syntaxException = errListener.getError();
+            SyntaxException syntaxException = Stream.of(lexerErrListener, parserErrListener)
+                    .map(RecognitionErrorListener::getError).filter(Objects::nonNull)
+                    .findFirst().orElse(null);
+            
             if (syntaxException != null) {
                 throw syntaxException;
             }
