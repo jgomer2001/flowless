@@ -1,9 +1,0 @@
-<zk>
-	<label class="big">Play with:</label>
-	<separator spacing="30" />
-    <toolbar>
-    	<button label="Flows" href="flows.zul" />
-    	<button label="Tasks" href="tasks.zul" />
-    	<button label="Assets" href="assets.zul" />
-    </toolbar>
-</zk>

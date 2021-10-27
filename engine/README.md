@@ -1,3 +1,3 @@
 # Flowless (engine)
 
-A component in charge of executing flowless authentication flows.
+A component in charge of executing authentication flows.

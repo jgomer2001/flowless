@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+
 import org.gluu.flowless.playground.Utils;
 import org.gluu.flowless.playground.ZKInitializer;
 import org.slf4j.Logger;
@@ -34,6 +35,7 @@ public class AssetsVM {
     private static final String ASSETS_DIR = "assets";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private boolean markupOnly;
     private String basePath;
     private String contents;
     private String allowedExtensions;
@@ -71,7 +73,7 @@ public class AssetsVM {
         try {
             logger.info("Computing tree model");
             contents = "";
-            treeModel = TreeModel.get(basePath);
+            treeModel = TreeModel.get(basePath, markupOnly);
     
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
@@ -105,13 +107,19 @@ public class AssetsVM {
 
                 contents = contents.length() == 0 ? "empty file!" : contents;
             } else {
-                contents = "Binary file";
+                contents = "<Binary file>";
             }
         } else {
-            contents = "Directory";
+            contents = "<Directory>";
         }
     }
-
+    
+    @NotifyChange({"contents", "treeModel"})
+    public void checkedMarkup(boolean checked) {
+        markupOnly = checked;
+        reload();
+    }
+    
     @NotifyChange({"contents", "treeModel"})
     public void uploaded(Media media) {
 

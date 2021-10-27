@@ -8,11 +8,14 @@ import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.gluu.flowless.playground.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,10 +31,13 @@ public class TreeModel {
 
     public static SortedSet<String> ALLOWED_EXTENSIONS = Stream.of(EXTENSIONS)
             .collect(Collectors.toCollection(TreeSet::new));
+            
+    private static Set<String> MARKUP_EXTENSIONS = Stream.of("html", "htm", "xhtml")
+            .collect(Collectors.toCollection(HashSet::new));
     
     private static final Logger logger = LoggerFactory.getLogger(TreeModel.class);
 
-    public static DefaultTreeModel<String> get(String basePath) throws IOException {
+    public static DefaultTreeModel<String> get(String basePath, boolean markupOnly) throws IOException {
         List<TreeNode<String>> nodes = new ArrayList<>();
         
         Files.walkFileTree(Paths.get(basePath), new SimpleFileVisitor<Path>() {
@@ -44,7 +50,9 @@ public class TreeModel {
          
                 String ext = Utils.filenameExtension(file.getFileName().toString());
                 if (ALLOWED_EXTENSIONS.contains(ext.toLowerCase())) {
-                    parent.getChildren().add(new DefaultTreeNode<>(name(file)));
+                    if (!markupOnly || MARKUP_EXTENSIONS.contains(ext.toLowerCase())) {
+                        parent.getChildren().add(new DefaultTreeNode<>(name(file)));
+                    }
                 } else {
                     logger.warn("Rejecting {}. File extension '{}' not recognized", file, ext);
                 }
@@ -58,6 +66,12 @@ public class TreeModel {
                 
                 if (e == null) {
                     TreeNode<String> tmp = parent.getParent();
+                    boolean empty = parent.getChildren().isEmpty();
+                    
+                    if (empty && tmp != null) {
+                        logger.debug("Directory {} is empty. Removing from final representation", dir);
+                        tmp.getChildren().remove(parent);
+                    }
                     
                     if (tmp == null) {
                         nodes.add(parent);
@@ -65,6 +79,7 @@ public class TreeModel {
                     } else {
                         parent = tmp;
                     }
+                    
                     return FileVisitResult.CONTINUE;
                 } else {
                     // directory iteration failed

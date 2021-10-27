@@ -1,0 +1,47 @@
+body {
+	height: initial;
+	position: relative;
+	padding: 0;
+	
+	font-family: "Roboto",sans-serif;
+	/*
+	font-size: 1rem;
+	color: #4f4f4f;
+	display:flex;
+	justify-content:center;*/
+}
+.no-underline {
+    text-decoration: none;
+}
+/* ZK styles */
+.z-treecell-content {
+    line-height: 14px;
+}
+.z-treecell-text {
+    margin-left: 4px;
+}
+.z-treecell-content {
+    font-size: 14px;
+    padding: 12px;
+}
+.z-popup-content .z-label {
+    font-size: 14px;
+    font-weight: 300;
+}
+.z-listcell-content {
+    line-height: 14px;
+    font-size: 14px;
+    padding: 12px;
+}
+
+.small {
+    font-size: 14px;
+}
+/*
+.big {
+	font-size: 19px;
+}
+.monospaced {
+	padding-top: 8px;
+	font-family: monospace !important;
+}*/

@@ -1,0 +1,84 @@
+<?page language="xhtml"?>
+<?init class="org.zkoss.zk.ui.util.Composition" template="/template.zul"?>
+<?taglib uri="http://www.zkoss.org/dsp/web/core" prefix="c"?>
+<zk:zk xmlns:z="zul" xmlns:h="xhtml" xmlns:zk="zk" xmlns:w="client" xmlns="native">
+
+<h:div class="p-4 d-flex flex-column align-items-center w-100" self="@define(content)">
+    
+    <script>
+        function setValue(id, str) {
+            var widget =  zk.$('$' + id);
+            widget.setValue(str);
+        }
+    </script>
+
+    <style>    
+        .z-a, .z-a:visited {
+            color: #333;
+        }
+        .z-separator-horizontal-bar {
+            height: 20px;
+        }
+        .no-resize {
+            resize: none;
+        }
+    </style>
+    
+    <z:tabbox class="p-1">
+        <z:tabs>
+            <z:tab class="fs-6" label="Actions inventory" />
+            <z:tab class="fs-6" label="Script files manager" />
+        </z:tabs>
+        <z:tabpanels viewModel="@('org.gluu.flowless.playground.actions.ActionsVM')">
+            <z:tabpanel>
+                <p>An action corresponds to a (designated) static method in a existing Java class. 
+                Use the <span class="fst-italic">Script files manager</span> tab to supply classes and any helper code needed.</p>
+            </z:tabpanel>
+            <z:tabpanel>
+
+                <div class="d-flex pt-1 align-content-between">
+                    
+                    <div class="p-2 d-flex flex-column pe-3">
+                        <z:popup id="poprefresh">Refresh list</z:popup>
+                        <z:popup id="popupload">Upload java files</z:popup>
+                        <!--z:popup id="popuploadzip">Upload a zip file</z:popup-->
+                        <z:popup id="popdel">Remove the selected class</z:popup>
+                        <z:popup id="popadd">Create action based on the selected class</z:popup>
+                        
+                        <div class="d-flex justify-content-around pb-2 fs-5">
+                            <z:a onClick="@('reloadScripts')" tooltip="poprefresh, position=after_center">
+                                <i class="fas fa-sync-alt" />
+                            </z:a>
+                            <z:a onClick="@('upload')" tooltip="popupload, position=after_center">
+                                <i class="fas fa-file-upload" />
+                            </z:a>
+                            <!--z:a onClick="alert('')" tooltip="popuploadzip, position=after_center">
+                                <i class="fas fa-upload" />
+                            </z:a-->
+                            <z:a onClick="alert('')" disabled="@load(empty vm.scriptContents)" tooltip="popdel, position=after_center">
+                                <i class="fas fa-trash-alt" />
+                            </z:a>
+                            <z:a onClick="alert('')" disabled="@load(empty vm.scriptContents)" tooltip="popadd, position=after_center">
+                                <i class="fas fa-font" />
+                            </z:a>
+                        </div>
+                        <z:listbox class="flex-grow-1" vflex="1" width="420px" w:onSelect="javascript:setValue('content', 'Loading...')"
+                             model="@load(vm.scriptNames)" onSelect="@('scriptSelected')" />
+                    </div>
+            
+                    <div class="p-2 d-flex flex-column">
+                        <div class="d-flex justify-content-between flex-grow-1">
+                            <span class="fst-italic">Selected file contents</span>
+                            <span class="small fw-light pe-3"><i class="fas fa-exclamation-circle"></i> no syntax highlighting available yet, sorry</span>
+                        </div>
+                        <z:textbox id="content" rows="35" cols="95" readonly="true" class="font-monospace py-2 small no-resize" value="@load(vm.scriptContents)" />
+                    </div>
+                </div>
+
+            </z:tabpanel>
+        </z:tabpanels>
+    </z:tabbox>
+
+</h:div>
+
+</zk:zk>

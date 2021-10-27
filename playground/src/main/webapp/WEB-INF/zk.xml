@@ -4,6 +4,12 @@
         <name>org.zkoss.zk.ui.WebApp.name</name>
         <value>Flowless playground</value>
     </preference>
+
+    <session-config>
+        <device-type>mil</device-type>
+        <timeout-uri>/session-expired.zul</timeout-uri>
+    </session-config>
+    
     <library-property>
         <name>org.zkoss.util.label.web.charset</name>
         <value>UTF-8</value>
@@ -12,8 +18,12 @@
         <name>org.zkoss.zul.tablet.meta.viewport.disabled</name>
         <value>true</value>
     </library-property>
+
     <!--desktop-config>
         <file-check-period>10</file-check-period>
+    </desktop-config>
+    <desktop-config>
+        <disable-theme-uri>~./zul/css/zk.wcs</disable-theme-uri>
     </desktop-config-->
     <listener>
         <listener-class>org.gluu.flowless.playground.ZKInitializer</listener-class>
