@@ -1,10 +1,9 @@
 package org.gluu.flowless.playground.actions;
 
-import com.google.gson.Gson;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.StringReader;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -18,8 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
-//import org.gluu.flowless.playground.FlowElementsService;
 import org.gluu.flowless.playground.Utils;
 import org.gluu.flowless.playground.ZKInitializer;
 import org.slf4j.Logger;
@@ -31,22 +30,31 @@ import org.zkoss.util.Pair;
 import org.zkoss.util.media.Media;
 import org.zkoss.zul.Fileupload;
 import org.zkoss.zul.ListModelList;
-import org.zkoss.zk.ui.event.EventListener;
-import org.zkoss.zk.ui.event.UploadEvent;
 import org.zkoss.zul.Messagebox;
+import org.zkoss.zk.ui.event.Event;
+import org.zkoss.zk.ui.event.Events;
 
 public class ActionsVM {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());    
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+
+    private static final Charset UTF8 = StandardCharsets.UTF_8;
+
     private static final String ACTIONS_DIR = "actions";  
     private static final String SCRIPTS_DIR = "scripts";
     private static final String SCRIPT_EXTENSION = "groovy";
-    private static final Charset UTF8 = StandardCharsets.UTF_8;
-    private static final int MAX_CHARS_PACKAGE_SEARCH = 2000;
     
     private String scriptContents;
     private String scriptsBasePath;
     private ListModelList<String> scriptNames;
+
+    private List<Action> actions;
+    private String actionsBasePath;
+        
+    private List<SimpleMethodDeclaration> methodDeclarations;
+    private Action newAction;
+    
+    private ObjectMapper mapper;
     
     public String getScriptContents() {
         return scriptContents;
@@ -56,10 +64,27 @@ public class ActionsVM {
         return scriptNames;
     }
     
+    public List<Action> getActions() {
+        return actions;
+    }
+    
+    public Action getNewAction() {
+        return newAction;
+    }
+    
+    public List<SimpleMethodDeclaration> getMethodDeclarations() {
+        return methodDeclarations;
+    }
+
     @Init
     public void init() throws IOException {
+        
         scriptsBasePath = ZKInitializer.getBasePath() + File.separator + SCRIPTS_DIR;
+        actionsBasePath = ZKInitializer.getBasePath() + File.separator + ACTIONS_DIR;
+        mapper = new ObjectMapper();
         reloadScripts();
+        reloadActions();
+        
     }
     
     @NotifyChange({ "scriptContents", "scriptNames" })
@@ -67,6 +92,11 @@ public class ActionsVM {
         scriptContents = null;
         scriptNames = new ListModelList<>(getScriptsList(scriptsBasePath));        
         logger.debug("{} scripts found", scriptNames.size());
+    }
+    
+    public void reloadActions() throws IOException{
+        actions = getActions(actionsBasePath);
+        logger.debug("{} actions found", actions.size());
     }
     
     public void upload() {
@@ -79,16 +109,15 @@ public class ActionsVM {
             10,     //max. of files 
             100,    //max. size (100KB)
             true,
-            new EventListener<UploadEvent>() {
-                
-                public void onEvent(UploadEvent event) throws Exception {
-                    
-                    Media[] medias = event.getMedias();
+            event -> {
+
+                Media[] medias = event.getMedias();
+                if (medias != null) {
                     logger.info("{} files selected", medias.length);
-                    
+
                     int overwritten = 0;
                     List<String> errors = new ArrayList<>();
-                    
+
                     for (Media m : medias) {
                         String name = m.getName();
                         //logger.info("name {}, format {}, content-type {}", name, m.getFormat(), m.getContentType());            
@@ -105,7 +134,8 @@ public class ActionsVM {
                     }
                     if (!errors.isEmpty()) {
                         String files = errors.toString();
-                        msg = String.format("%s. There were problems processing: {}" , msg, files.substring(1, msg.length() - 1));
+                        msg = String.format("%s. There were problems processing: {}." , msg, files.substring(1, msg.length() - 1));
+                        msg += " Ensure they are syntactically valid and have a package declaration.";
                     }
                     Messagebox.show(msg, null, Messagebox.OK, Messagebox.NONE);
                     BindUtils.postNotifyChange(ActionsVM.this, "scriptContents", "scriptNames");
@@ -117,15 +147,96 @@ public class ActionsVM {
         
     }
     
+    public void removeScript() throws IOException {
+        
+        String selected = scriptNames.getSelection().iterator().next();
+        List<String> dependant = actions.stream().filter(a -> a.getId().startsWith(selected))
+                .map(Action::getDisplayName).collect(Collectors.toList());
+        
+        if (!dependant.isEmpty()) {
+            String msg = dependant.toString();
+            msg = "The following actions depend on this script: " + msg.substring(1, msg.length() - 1);
+            Messagebox.show(msg, "Removal error", Messagebox.OK, Messagebox.NONE);
+        } else {
+            Messagebox.show("Proceed with removal of script " + selected + "?",
+                    "Confirm removal", Messagebox.YES | Messagebox.NO, Messagebox.NONE,
+                    event -> {
+                        if (Messagebox.ON_YES.equals(event.getName())) {
+                            Path selectedPath = getScriptPath(selected);            
+                            logger.info("Removing {}", selectedPath);
+                            Files.delete(selectedPath);
+
+                            scriptNames.remove(selected);
+                            scriptContents = null;
+                            BindUtils.postNotifyChange(ActionsVM.this, "scriptContents", "scriptNames");
+                        }
+                    });
+        }
+        
+    }
+    
     @NotifyChange({ "scriptContents" })
     public void scriptSelected() throws IOException {
-        String selected = scriptNames.getSelection().iterator().next();
-        logger.debug("Script {} selected", selected);
-        
-        Path selectedPath = Paths.get(scriptsBasePath, selected.replaceAll("\\.", File.separator) + "." + SCRIPT_EXTENSION);        
-        scriptContents = Utils.fileContents(selectedPath);
+        scriptContents = getScriptContents(scriptNames.getSelection().iterator().next());
         scriptContents = scriptContents.length() == 0 ? "empty file!" : scriptContents;
+    }
+    
+    @NotifyChange({ "methodDeclarations" })
+    public void preAddAction() {
+
+        Pair<String, String> pair = JavaUtil.checkJavaSyntaxValidity(scriptContents);
+        if (pair.getX() == null) {
+            Messagebox.show("Selected class or interface seems to have syntax problems or is missing package declaration",
+                    "Error", Messagebox.OK, Messagebox.NONE);
+            
+        } else if (pair.getY() == null){
+            Messagebox.show("Cannot create an action from a non-public class or interface",
+                    "Error", Messagebox.OK, Messagebox.NONE);
+            
+        } else {
+            String sel = scriptNames.getSelection().iterator().next();
+            
+            if (!sel.endsWith("." + pair.getY())) {
+                Messagebox.show(String.format("Unexpected script name '%s' for class/interface '%s'", sel, pair.getY()),
+                        "Error", Messagebox.OK, Messagebox.NONE);
+
+            } else {
+                methodDeclarations = JavaUtil.getPublicStaticMethodDeclarations(scriptContents, sel)
+                        .stream().map(SimpleMethodDeclaration::new).collect(Collectors.toList());
+                logger.info("{} suitable methods found", methodDeclarations.size());
+            }
+        }
         
+    }
+    
+    @NotifyChange({ "newAction" })
+    public void addAction(int index) {
+        String qname = scriptNames.getSelection().iterator().next();
+        newAction = methodDeclarations.get(index).makeAction(qname);   
+    }
+    
+    @NotifyChange({ "methodDeclarations", "newAction" })
+    public void cancelAddAction(Event event) {
+        newAction = null;
+        methodDeclarations = null;
+
+        if (event != null && event.getName().equals(Events.ON_CLOSE)) {
+            event.stopPropagation();
+        }
+        
+    }
+    
+    public void saveAction() {
+        //logger.debug("{}", newAction.getInputs().stream().map(Input::getName).collect(Collectors.toList()));
+    }
+    
+    private String getScriptContents(String scriptName) throws IOException {
+        Path selectedPath = getScriptPath(scriptName);
+        return Utils.fileContents(selectedPath);
+    }
+    
+    private Path getScriptPath(String scriptName) {
+        return Paths.get(scriptsBasePath, scriptName.replaceAll("\\.", File.separator) + "." + SCRIPT_EXTENSION);
     }
     
     private Set<String> getScriptsList(String base) throws IOException {
@@ -157,29 +268,59 @@ public class ActionsVM {
     
     }
     
+    private List<Action> getActions(String base) throws IOException {
+        
+        List<Action> list = new ArrayList<>();
+        Path basePath = Paths.get(base);
+        
+        Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
+            
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+                    throws IOException {
+         
+                String ext = Utils.filenameExtension(file.getFileName().toString());
+                
+                if (ext.toLowerCase().equals("json")) {
+                    list.add(mapper.readValue(file.toFile(), Action.class));
+                }
+                return FileVisitResult.CONTINUE;
+                
+            }
+            
+        });
+        return list;
+        
+    }
+    
     private Pair<Boolean, Boolean> processJavaFile(byte[] bytes, String fileName) {
 
         boolean success = false;
         boolean overwritten = false;
-        String content = new String(bytes, UTF8);            
-        //Only scan a few thousand chars
-        String header = content.substring(0, Math.min(content.length(), MAX_CHARS_PACKAGE_SEARCH));                        
 
-        String packageName = Utils.guessQualifiedPackageName(header);
-        if (packageName != null) {
-
-            String ext = Utils.filenameExtension(fileName).toLowerCase();
-            if (!ext.equals("java")) {
-                logger.error("Unexpected file name extension in {}", fileName);
+        String ext = Utils.filenameExtension(fileName).toLowerCase();
+        if (!ext.equals("java")) {
+            logger.error("Unexpected file name extension in {}", fileName);
+        } else {
+            
+            Pair<String, String> pair= JavaUtil.checkJavaSyntaxValidity(new String(bytes, UTF8));
+            String packageName = pair.getX();
+            String publicClassName = pair.getY();
+            String extensionless = fileName.substring(0, fileName.length() - ext.length() - 1);
+            
+            if (packageName == null) {
+                logger.error("File does not seem to be Java-valid or does not have a package declaration");
+            } else if (publicClassName != null && !publicClassName.equals(extensionless)) {
+                logger.error("Expected {} as file name", publicClassName);
             } else {
                 String dest = scriptsBasePath + File.separator + 
                         packageName.replaceAll("\\.", File.separator);
-                    
+
                 try {
                     Files.createDirectories(Paths.get(dest));
-                    String newFileName = fileName.substring(0, fileName.length() - ext.length()) + SCRIPT_EXTENSION;
+                    String newFileName = extensionless + "." + SCRIPT_EXTENSION;
                     logger.info("Creating file {} under {}", newFileName, dest);
-                    
+
                     Path path = Paths.get(dest, newFileName);
                     overwritten = Files.exists(path);
                     if (overwritten) {
@@ -195,33 +336,5 @@ public class ActionsVM {
         return new Pair<>(success, overwritten);
         
     }
-/*
-    private ListModelList<String> tasks;
-    private Task task;
 
-    public ListModelList<String> getTasks() {
-        return tasks;
-    }
-    
-    public Task getTask() {
-        return task;
-    }
-    
-    @NotifyChange("task")
-    public void selected() throws IOException {
-        
-        String name = tasks.getSelection().stream().findFirst().get();
-        logger.debug("Selected task {}", name);
-        Path path = Paths.get(basePath, name + ".json");
-        String taskDetails = Utils.fileContents(path);
-        
-        try(StringReader reader = new StringReader(taskDetails)) {            
-            Gson gson = new Gson();
-            task = gson.fromJson(reader, Task.class);
-            
-            task.setCode(Utils.fileContents(Paths.get(basePath, name)));            
-        }
-        
-    }
-    */
 }
