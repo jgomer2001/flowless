@@ -1,5 +1,6 @@
 package org.gluu.flowless.playground.actions;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
@@ -13,6 +14,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -21,6 +23,8 @@ import java.util.stream.Collectors;
 
 import org.gluu.flowless.playground.Utils;
 import org.gluu.flowless.playground.ZKInitializer;
+import org.gluu.flowless.playground.actions.java.SimpleMethodDeclaration;
+import org.gluu.flowless.playground.actions.java.JavaUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zkoss.bind.BindUtils;
@@ -40,18 +44,18 @@ public class ActionsVM {
 
     private static final Charset UTF8 = StandardCharsets.UTF_8;
 
-    private static final String ACTIONS_DIR = "actions";  
+    public static final String ACTIONS_DIR = "actions";  
     private static final String SCRIPTS_DIR = "scripts";
     private static final String SCRIPT_EXTENSION = "groovy";
-    
+
     private String scriptContents;
     private String scriptsBasePath;
     private ListModelList<String> scriptNames;
-
-    private List<Action> actions;
-    private String actionsBasePath;
-        
     private List<SimpleMethodDeclaration> methodDeclarations;
+
+    private String selectedAction;
+    private String actionsBasePath;
+    private List<Action> actions;
     private Action newAction;
     
     private ObjectMapper mapper;
@@ -64,6 +68,10 @@ public class ActionsVM {
         return scriptNames;
     }
     
+    public String getSelectedAction() {
+        return selectedAction;
+    }
+
     public List<Action> getActions() {
         return actions;
     }
@@ -87,6 +95,115 @@ public class ActionsVM {
         
     }
     
+    @NotifyChange({ "actions" })
+    public void reloadActions() throws IOException {
+        actions = getActions(actionsBasePath);
+        logger.debug("{} actions found", actions.size());
+    }
+    
+    @NotifyChange({ "selectedAction" })
+    public void actionSelected(String id) {
+        selectedAction = id;
+    }
+    
+    public void removeAction() {
+
+        Messagebox.show("Proceed with removal of action " + selectedAction + "?",
+                    "Confirm removal", Messagebox.YES | Messagebox.NO, Messagebox.NONE,
+                    event -> {
+                        if (Messagebox.ON_YES.equals(event.getName())) {
+                            Path selectedPath = Paths.get(actionsBasePath, selectedAction + ".json");
+                            logger.info("Removing {}", selectedPath);
+                            Files.delete(selectedPath);
+
+                            Action action = new Action();
+                            action.setId(selectedAction);
+                            actions.remove(action);
+                            
+                            selectedAction = null;
+                            BindUtils.postNotifyChange(ActionsVM.this, "actions", "selectedAction");
+                        }
+                    });
+        
+    }
+    
+    @NotifyChange({ "methodDeclarations", "newAction" })
+    public void cancelAddAction(Event event) {
+        newAction = null;
+        methodDeclarations = null;
+
+        if (event != null && event.getName().equals(Events.ON_CLOSE)) {
+            event.stopPropagation();
+        }
+        
+    }
+    
+    @NotifyChange({ "actions", "methodDeclarations", "newAction", "selectedAction" })
+    public void saveAction() throws IOException, JsonProcessingException {
+        
+        newAction.setTimestamp(System.currentTimeMillis());
+        Path dest = Paths.get(actionsBasePath, newAction.getId() + ".json");
+        Files.writeString(dest, mapper.writeValueAsString(newAction));
+        
+        Messagebox.show("Action saved", "Success!", Messagebox.OK, Messagebox.NONE);
+        reloadActions();
+        newAction = null;
+        methodDeclarations = null;
+        selectedAction = null;
+        
+    }
+    
+    @NotifyChange({ "methodDeclarations", "newAction" })
+    public void editAction() {
+        methodDeclarations = Collections.emptyList();
+        newAction = actions.stream().filter(a -> a.getId().equals(selectedAction)).findFirst().orElse(null);
+    }
+    
+    @NotifyChange({ "newAction" })
+    public void addAction(int index) {
+
+        String qname = scriptNames.getSelection().iterator().next();
+        Action action = methodDeclarations.get(index).makeAction(qname);
+        int i = actions.indexOf(action);
+        
+        if (i >= 0) {
+            Messagebox.show("There is an existing action associated to this method. " +
+                    "Check action named \"" + actions.get(i).getName().getDisplayName() + "\"",
+                    "Action already exists", Messagebox.OK, Messagebox.NONE);
+        } else {
+            newAction = action;
+        }
+
+    }
+    
+    @NotifyChange({ "methodDeclarations" })
+    public void preAddAction() {
+
+        Pair<String, String> pair = JavaUtil.checkJavaSyntaxValidity(scriptContents);
+        if (pair.getX() == null) {
+            Messagebox.show("Selected class or interface seems to have syntax problems or is missing package declaration",
+                    "Error", Messagebox.OK, Messagebox.NONE);
+            
+        } else if (pair.getY() == null){
+            Messagebox.show("Cannot create an action from a non-public class or interface",
+                    "Error", Messagebox.OK, Messagebox.NONE);
+            
+        } else {
+            String sel = scriptNames.getSelection().iterator().next();
+            
+            if (!sel.endsWith("." + pair.getY())) {
+                Messagebox.show(String.format("Unexpected script name '%s' for class/interface '%s'", sel, pair.getY()),
+                        "Error", Messagebox.OK, Messagebox.NONE);
+
+            } else {
+                methodDeclarations = JavaUtil.getPublicStaticMethodDeclarations(scriptContents, sel)
+                        .stream().map(SimpleMethodDeclaration::new).collect(Collectors.toList());
+                logger.info("{} suitable methods found", methodDeclarations.size());
+            }
+        }
+        
+    }
+    
     @NotifyChange({ "scriptContents", "scriptNames" })
     public void reloadScripts() throws IOException {
         scriptContents = null;
@@ -94,15 +211,10 @@ public class ActionsVM {
         logger.debug("{} scripts found", scriptNames.size());
     }
     
-    public void reloadActions() throws IOException{
-        actions = getActions(actionsBasePath);
-        logger.debug("{} actions found", actions.size());
-    }
-    
     public void upload() {
     
         Fileupload.get(
-            new HashMap<String, Object>(),
+            new HashMap<>(),
             "Choose a file: ",
             "Upload java files",
             "text/x-java",   //text/x-java-source,application/java
@@ -151,7 +263,7 @@ public class ActionsVM {
         
         String selected = scriptNames.getSelection().iterator().next();
         List<String> dependant = actions.stream().filter(a -> a.getId().startsWith(selected))
-                .map(Action::getDisplayName).collect(Collectors.toList());
+                .map(a -> a.getName().getDisplayName()).collect(Collectors.toList());
         
         if (!dependant.isEmpty()) {
             String msg = dependant.toString();
@@ -179,55 +291,6 @@ public class ActionsVM {
     public void scriptSelected() throws IOException {
         scriptContents = getScriptContents(scriptNames.getSelection().iterator().next());
         scriptContents = scriptContents.length() == 0 ? "empty file!" : scriptContents;
-    }
-    
-    @NotifyChange({ "methodDeclarations" })
-    public void preAddAction() {
-
-        Pair<String, String> pair = JavaUtil.checkJavaSyntaxValidity(scriptContents);
-        if (pair.getX() == null) {
-            Messagebox.show("Selected class or interface seems to have syntax problems or is missing package declaration",
-                    "Error", Messagebox.OK, Messagebox.NONE);
-            
-        } else if (pair.getY() == null){
-            Messagebox.show("Cannot create an action from a non-public class or interface",
-                    "Error", Messagebox.OK, Messagebox.NONE);
-            
-        } else {
-            String sel = scriptNames.getSelection().iterator().next();
-            
-            if (!sel.endsWith("." + pair.getY())) {
-                Messagebox.show(String.format("Unexpected script name '%s' for class/interface '%s'", sel, pair.getY()),
-                        "Error", Messagebox.OK, Messagebox.NONE);
-
-            } else {
-                methodDeclarations = JavaUtil.getPublicStaticMethodDeclarations(scriptContents, sel)
-                        .stream().map(SimpleMethodDeclaration::new).collect(Collectors.toList());
-                logger.info("{} suitable methods found", methodDeclarations.size());
-            }
-        }
-        
-    }
-    
-    @NotifyChange({ "newAction" })
-    public void addAction(int index) {
-        String qname = scriptNames.getSelection().iterator().next();
-        newAction = methodDeclarations.get(index).makeAction(qname);   
-    }
-    
-    @NotifyChange({ "methodDeclarations", "newAction" })
-    public void cancelAddAction(Event event) {
-        newAction = null;
-        methodDeclarations = null;
-
-        if (event != null && event.getName().equals(Events.ON_CLOSE)) {
-            event.stopPropagation();
-        }
-        
-    }
-    
-    public void saveAction() {
-        //logger.debug("{}", newAction.getInputs().stream().map(Input::getName).collect(Collectors.toList()));
     }
     
     private String getScriptContents(String scriptName) throws IOException {

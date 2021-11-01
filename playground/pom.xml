@@ -107,14 +107,10 @@
 
         <dependency>
             <groupId>com.github.javaparser</groupId>
-            <artifactId>javaparser-core</artifactId><!--javaparser-symbol-solver-core-->
+            <artifactId>javaparser-core</artifactId>
             <version>3.23.1</version>
         </dependency>
-        <!--dependency>
-            <groupId>com.twilio.sdk</groupId>
-            <artifactId>twilio</artifactId>
-            <version>7.47.1</version>
-        </dependency-->
+
     </dependencies>
 
 </project>

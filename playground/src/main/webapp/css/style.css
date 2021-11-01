@@ -33,7 +33,9 @@ body {
     font-size: 14px;
     padding: 12px;
 }
-
+.z-messagebox .z-label {
+    font-size: 14px;
+}
 .small {
     font-size: 14px;
 }

@@ -1,9 +1,11 @@
 <?page language="xhtml"?>
 <?init class="org.zkoss.zk.ui.util.Composition" template="/template.zul"?>
 <?taglib uri="http://www.zkoss.org/dsp/web/core" prefix="c"?>
-<zk:zk xmlns:z="zul" xmlns:h="xhtml" xmlns:zk="zk" xmlns:w="client" xmlns="native">
+<zk:zk xmlns:z="zul" xmlns:h="xhtml" xmlns:zk="zk" xmlns:w="client" xmlns="native"
+    xmlns:ca="client/attribute">
 
-<h:div class="p-4 d-flex flex-column align-items-center w-100" self="@define(content)">
+<h:div class="p-4 d-flex flex-column align-items-center w-100" self="@define(content)"
+    viewModel="@('org.gluu.flowless.playground.actions.ActionsVM')">
     
     <script>
         function setValue(id, str) {
@@ -22,6 +24,16 @@
         .no-resize {
             resize: none;
         }
+        .pointer {
+            cursor: pointer;
+        }
+        .mw-75 {
+            max-width: 75%;
+        }
+        th {
+            color: #666;
+            font-size: 14px;
+        }
     </style>
     
     <z:tabbox class="p-1">
@@ -29,10 +41,54 @@
             <z:tab class="fs-6" label="Actions inventory" />
             <z:tab class="fs-6" label="Script files manager" />
         </z:tabs>
-        <z:tabpanels viewModel="@('org.gluu.flowless.playground.actions.ActionsVM')">
+        <z:tabpanels>
             <z:tabpanel>
-                <p>An action corresponds to a (designated) static method in a existing Java class. 
-                Use the <span class="fst-italic">Script files manager</span> tab to supply classes and any helper code needed.</p>
+        
+                <div class="d-flex justify-content-center">
+                    <div class="w-75 px-5">
+                        <p class="fw-light px-2 mb-0">
+                            <i class="fas fa-exclamation-circle"></i>
+                            Non-developers should be able to compose flows just by re-using actions listed here.
+                            Advanced users can use the <span class="fst-italic">Script files manager</span>
+                            tab to supply classes and helper code needed to create their own actions.                            
+                        </p>
+                        <hr />
+                    </div>
+                </div>
+                <div class="d-flex pt-1 align-content-between">
+                    <div class="d-flex flex-column pe-3">
+    
+                        <z:popup id="poprefreshA">Refresh list</z:popup>
+                        <z:popup id="popeditA">Edit</z:popup>
+                        <z:popup id="popdelA">Remove the selected action</z:popup>
+                        
+                        <div class="d-flex justify-content-around pb-2 px-5 fs-5">
+                            <z:a onClick="@('reloadActions')" tooltip="poprefreshA, position=after_center">
+                                <i class="fas fa-sync-alt" />
+                            </z:a>
+                            <z:a onClick="@('editAction')" disabled="@load(vm.selectedAction eq null)" tooltip="popeditA, position=after_center"
+                                class="mx-4">
+                                <i class="fas fa-pencil-alt" />
+                            </z:a>
+                            <z:a onClick="@('removeAction')" disabled="@load(vm.selectedAction eq null)" tooltip="popdelA, position=after_center">
+                                <i class="fas fa-trash-alt" />
+                            </z:a>
+                        </div>
+                        
+                        <z:listbox class="flex-grow-1" vflex="1"
+                            model="@load(vm.actions)" onSelect="@('actionSelected', self.selectedItem.value.id)" width="400px">
+                            <zk:template name="model">
+                                <z:listitem label="${c:cat(each.name.displayName, empty each.author ? '' : c:cat3(' (by ', each.author,')'))}" value="${each}" />
+                            </zk:template>
+                        </z:listbox>
+                    </div>
+                    
+                    <div class="p-2 d-flex flex-column">
+                        <z:div visible="@load(vm.selectedAction ne null)"><!-- got a strange javascript output when the variable is null -->
+                            <z:include src="@load(c:cat('actionDetails.zul?actId=', c:encodeURIComponent(vm.selectedAction)))"/>
+                        </z:div>
+                    </div>
+                </div>              
             </z:tabpanel>
             <z:tabpanel>
 
@@ -52,23 +108,23 @@
                             <z:a onClick="@('upload')" tooltip="popupload, position=after_center">
                                 <i class="fas fa-file-upload" />
                             </z:a>
-                            <!--z:a onClick="alert('')" tooltip="popuploadzip, position=after_center">
+                            <!--z:a onClick="@('')" tooltip="popuploadzip, position=after_center">
                                 <i class="fas fa-upload" />
                             </z:a-->
-                            <z:a onClick="alert('')" disabled="@load(empty vm.scriptContents)" tooltip="popdel, position=after_center">
+                            <z:a onClick="@('removeScript')" disabled="@load(empty vm.scriptContents)" tooltip="popdel, position=after_center">
                                 <i class="fas fa-trash-alt" />
                             </z:a>
-                            <z:a onClick="alert('')" disabled="@load(empty vm.scriptContents)" tooltip="popadd, position=after_center">
+                            <z:a onClick="@('preAddAction')" disabled="@load(empty vm.scriptContents)" tooltip="popadd, position=after_center">
                                 <i class="fas fa-font" />
                             </z:a>
                         </div>
-                        <z:listbox class="flex-grow-1" vflex="1" width="420px" w:onSelect="javascript:setValue('content', 'Loading...')"
+                        <z:listbox class="flex-grow-1" vflex="1" width="400px" w:onSelect="javascript:setValue('content', 'Loading...')"
                              model="@load(vm.scriptNames)" onSelect="@('scriptSelected')" />
                     </div>
             
                     <div class="p-2 d-flex flex-column">
                         <div class="d-flex justify-content-between flex-grow-1">
-                            <span class="fst-italic">Selected file contents</span>
+                            <z:label class="fst-italic" value="@load(empty vm.scriptContents ? '' :  ' File contents')" />
                             <span class="small fw-light pe-3"><i class="fas fa-exclamation-circle"></i> no syntax highlighting available yet, sorry</span>
                         </div>
                         <z:textbox id="content" rows="35" cols="95" readonly="true" class="font-monospace py-2 small no-resize" value="@load(vm.scriptContents)" />
@@ -79,6 +135,124 @@
         </z:tabpanels>
     </z:tabbox>
 
+    <z:window title="Action details" border="normal" mode="modal" closable="true" class="mw-75"
+        visible="@load(vm.methodDeclarations ne null)" onClose="@('cancelAddAction', event)">
+
+        <z:div visible="@load(vm.newAction eq null)">
+            <p>
+                To start, click on the method you want to associate to this action. 
+                Preferably, use methods that do not throw checked exceptions.<br />
+                Note only the following are allowed:
+                <ul>
+                    <li>public static methods from public classes</li>
+                    <li>static or default methods from public interfaces</li>
+                </ul>  
+            </p>
+            <hr />
+            <div class="px-4 pt-1">
+                <z:div visible="@load(empty vm.methodDeclarations)" align="center fw-bolder">
+                    There are no eligible methods!
+                </z:div>
+                <table class="table table-hover">
+                    <h:tbody children="@load(vm.methodDeclarations)">
+                        <zk:template name="children">
+                            <h:tr class="pointer" onClick="@('addAction', forEachStatus.index)">
+                                <td>
+                                    <z:a class="no-underline font-monospace small d-flex flex-grow-1"
+                                        onClick="@('addAction', forEachStatus.index)">
+                                        ${each.declaration}
+                                    </z:a>
+                                </td>
+                            </h:tr>
+                        </zk:template>
+                    </h:tbody>
+                </table>
+            </div>
+        </z:div>
+        
+        <z:div visible="@load(vm.newAction ne null)">
+    
+            <div align="center">
+                <p class="fw-light mb-2">
+                    <i class="fas fa-exclamation-circle"></i>
+                    Some data may be already populated based on available Javadoc comments. Edit as desired.
+                </p>
+            </div>
+            <z:tabbox class="p-2">
+                <z:tabs>
+                    <z:tab class="fs-6" label="Description" />
+                    <z:tab class="fs-6" label="Outputs" />
+                    <z:tab class="fs-6" label="Inputs" />
+                </z:tabs>
+                <z:tabpanels>
+                    <z:tabpanel>
+                        <div class="pb-3 pt-2">
+                            Action ID: <z:label class="small font-monospace" value="@load(vm.newAction.id)" />
+                        </div>
+                        <div class="pb-3">
+                            Display name (users explore actions by using this field)
+                            <br />
+                            <z:textbox class="small w-75" value="@bind(vm.newAction.name.displayName)"
+                                ca:placeHolder="Example: OTP e-mail sender" />
+                        </div>
+                        <div class="pb-3">
+                            Author
+                            <br />
+                            <z:textbox class="small w-75" value="@bind(vm.newAction.author)" />
+                        </div>
+                        <div>
+                            Description
+                            <br />
+                            <z:textbox class="small py-2" cols="80" rows="5" value="@bind(vm.newAction.name.description)" />
+                        </div>
+                    </z:tabpanel>
+                    
+                    <z:tabpanel>                        
+                        <div class="pb-3 pt-2">
+                            <p>
+                                Describe the output and provide sample values. They are helpful when the action returns an Object.
+                                <br />
+                                Check <a href="javascript:;">here</a> to learn how to supply sample outputs effectively.
+                            </p>
+                            <z:textbox class="small py-2" cols="80" rows="10" value="@bind(vm.newAction.output)" />
+                        </div>
+                    </z:tabpanel>
+                    
+                    <z:tabpanel>
+                        <h:table class="table" visible="@load(not empty vm.newAction.inputs)">
+                            <thead>
+                                <tr align="center">
+                                    <th scope="col" class="fst-italic">Input's display name</th>
+                                    <th scope="col" class="fst-italic">Description and sample values</th>
+                                </tr>
+                            </thead>
+                            <h:tbody children="@load(vm.newAction.inputs)">
+                                <zk:template name="children">
+                                    <tr>
+                                        <td>
+                                            <z:textbox value="@bind(each.displayName)" class="small" />
+                                        </td>
+                                        <td>
+                                            <z:textbox class="small py-2" cols="50" rows="4" value="@bind(each.description)" />
+                                        </td>
+                                    </tr>
+                                </zk:template>
+                            </h:tbody>
+                        </h:table>
+                        <z:div visible="@load(empty vm.newAction.inputs)">
+                            This is a no-params action.
+                        </z:div>
+                    </z:tabpanel>
+                </z:tabpanels>
+            </z:tabbox>
+            
+            <div class="pt-3" align="center">
+                <z:button label="Cancel" onClick="@('cancelAddAction', event)" class="me-4" />
+                <z:button label=" Save " onClick="@('saveAction')" disabled="@load(empty vm.newAction.name.displayName)" />
+            </div>
+        </z:div>
+    </z:window>
+    
 </h:div>
 
 </zk:zk>

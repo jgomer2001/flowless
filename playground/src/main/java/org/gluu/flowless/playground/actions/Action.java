@@ -2,19 +2,19 @@ package org.gluu.flowless.playground.actions;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
+import java.util.Optional;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Action {
     
     private String id;
-    private String displayName;
     private String author;
     
     private String language = "java";
     private long timestamp;
     
-    private String description;
-    private List<Input> inputs;
+    private Name name;
+    private List<Name> inputs;
     private String output;
 
     /**
@@ -25,7 +25,7 @@ public class Action {
     }
 
     /**
-     * @param namespace the  to set
+     * @param id
      */
     public void setId(String id) {
         this.id = id;
@@ -60,30 +60,16 @@ public class Action {
     }
 
     /**
-     * @return the description
-     */
-    public String getDescription() {
-        return description;
-    }
-
-    /**
-     * @param description the description to set
-     */
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    /**
      * @return the inputs
      */
-    public List<Input> getInputs() {
+    public List<Name> getInputs() {
         return inputs;
     }
 
     /**
      * @param inputs the inputs to set
      */
-    public void setInputs(List<Input> inputs) {
+    public void setInputs(List<Name> inputs) {
         this.inputs = inputs;
     }
 
@@ -101,14 +87,6 @@ public class Action {
         this.author = author;
     }
 
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
-
     public String getOutput() {
         return output;
     }
@@ -116,5 +94,23 @@ public class Action {
     public void setOutput(String output) {
         this.output = output;
     }
+
+    public Name getName() {
+        return name;
+    }
+
+    public void setName(Name name) {
+        this.name = name;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        return Action.class.isInstance(other) && id.equals(((Action) other).getId());
+    }
     
+    @Override
+    public int hashCode() {
+        return Optional.ofNullable(id).map(String::hashCode).orElse(0);
+    }
+
 }

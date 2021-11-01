@@ -1,4 +1,4 @@
-package org.gluu.flowless.playground.actions;
+package org.gluu.flowless.playground.actions.java;
 
 import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.StaticJavaParser;
@@ -6,15 +6,14 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.visitor.VoidVisitor;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
-import com.github.javaparser.javadoc.Javadoc;
-import com.github.javaparser.javadoc.description.JavadocDescription;
+
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
 import org.gluu.flowless.playground.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,15 +166,6 @@ public class JavaUtil {
         /*MethodDeclaration decl = cu.findAll(MethodDeclaration.class).stream()
                 .filter(d -> d.isPublic() && d.isStatic())
                     .collect(Collectors.toList()).get(0);*/
-        /*
-        logger.info(decl.getDeclarationAsString(false, false, true));
-        //logger.info(decl.getName().getIdentifier());
-        //logger.info(decl.getName().asString());
-        logger.info(decl.getJavadoc().map(Javadoc::getDescription)
-                .map(JavadocDescription::toText).orElse(null));
-        
-        decl.getJavadoc().get().getBlockTags().forEach(t -> logger.info(t.getType().toString()));
-*/
         
         cu.findAll(MethodDeclaration.class).forEach(md -> {
             String fqdn = md.findAncestor(ClassOrInterfaceDeclaration.class)
