@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
+
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.Serializer;
@@ -30,8 +31,7 @@ import net.sf.saxon.s9api.Xslt30Transformer;
 import net.sf.saxon.s9api.XsltCompiler;
 import net.sf.saxon.s9api.XsltExecutable;
 import net.sf.saxon.sapling.SaplingDocument;
-import net.sf.saxon.sapling.Saplings;
-import org.antlr.v4.runtime.ANTLRErrorListener;
+
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -44,32 +44,27 @@ import org.gluu.flowless.dsl.error.RecognitionErrorListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- */
 public class Transpiler {
 
     private static final Charset utf8 = StandardCharsets.UTF_8;
     private static final String XSL_LOCATION = "JSGenerator.xsl";
 
     private Logger logger = LoggerFactory.getLogger(getClass());
-    private String flowName;
-    private Set<String> taskNames;
+    private String flowId;
     private Set<String> flowNames;
 
     private Processor processor;
     private XsltExecutable stylesheet;
     private XPathCompiler xpathCompiler;
 
-    private void initialize(String flowName,
-            List<String> taskNames, List<String> flowNames) throws TranspilerException {
+    private void initialize(String flowId, List<String> flowNames)
+            throws TranspilerException {
 
-        this.flowName = flowName;
-        this.taskNames = Optional.ofNullable(taskNames).map(HashSet::new).orElse(null);
+        this.flowId = flowId;
         this.flowNames = Optional.ofNullable(flowNames).map(HashSet::new).orElse(null);
         
-        if (Stream.of(flowNames, flowName).allMatch(Objects::nonNull)) {
-            flowNames.remove(flowName);
+        if (Stream.of(flowNames, flowId).allMatch(Objects::nonNull)) {
+            flowNames.remove(flowId);
         }
 
         processor = new Processor(false);
@@ -94,12 +89,11 @@ public class Transpiler {
     }
 
     public Transpiler() throws TranspilerException {
-        initialize(null, null, null);
+        initialize(null, null);
     }
 
-    public Transpiler(String flowName,
-            List<String> taskNames, List<String> flowNames) throws TranspilerException {
-        initialize(flowName, taskNames, flowNames);
+    public Transpiler(String flowName, List<String> flowNames) throws TranspilerException {
+        initialize(flowName, flowNames);
     }
 
     public Source asXML(String DSLCode) throws SyntaxException, TranspilerException {
@@ -138,9 +132,8 @@ public class Transpiler {
 
             logger.debug("Traversing parse tree");
             //Generate XML representation
-            XmlVisitor visitor = new XmlVisitor();
-            SaplingDocument document = Saplings.doc().withChild(visitor.visitFlow(flowContext));
 
+            SaplingDocument document = Visitor.document(flowContext, AuthnFlowParser.RULE_flow);
             applyValidations(document);
             logXml(document);
             return document;
@@ -156,7 +149,7 @@ public class Transpiler {
     public List<String> getInputs(Source doc) throws SaxonApiException {
         
         XdmNode node = processor.newDocumentBuilder().build(doc);
-        return xpathCompiler.evaluate("/flow/header/inputs/param/text()", node)
+        return xpathCompiler.evaluate("/flow/header/inputs/param/ALPHANUM/text()", node)
                     .stream().map(XdmItem::getStringValue).collect(Collectors.toList());
     }
     
@@ -185,20 +178,23 @@ public class Transpiler {
         try {
             XdmNode node = doc.toXdmNode(processor);
             
-            if (flowName != null) {                
-                //validate flow name is consistent 
-                String name = xpathCompiler.evaluateSingle("/flow/header/qname/text()", node)
-                        .getStringValue();                
+            if (flowId != null) {                
+                //validate flow name is consistent
+                XdmItem itemName = xpathCompiler.evaluateSingle("/flow/header/qname/DOTEXPR/text()", node);
+                if (itemName == null) {
+                    itemName = xpathCompiler.evaluateSingle("/flow/header/qname/ALPHANUM/text()", node);
+                }
+                String name = Optional.ofNullable(itemName).map(XdmItem::getStringValue).orElse("");  
                 
-                if (!flowName.equals(name)) {
+                if (!flowId.equals(name)) {
                     throw new TranspilerException(
-                        String.format("Expecting flow name '%s', but '%s' was found", flowName, name));
+                        String.format("Expecting flow name '%s', but '%s' was found", flowId, name));
                 }
             }
             
-            //Ensure only existing flows/tasks are referenced
-            checkUnknownInvocation("//invocation[@type=\"task_call\"]/call/qname/text()", taskNames, node);
-            checkUnknownInvocation("//invocation[@type=\"flow_call\"]/call/qname/text()", flowNames, node);
+            //Ensure only existing flows are referenced
+            //TODO: fix xpath expression - should account for extract ALPHANUM or DOTEXPR
+            //checkUnknownInvocation("//flow_call/call/qname/ALPHANUM/text()", flowNames, node);
 
         } catch (SaxonApiException se) {
             throw new TranspilerException("Validation failed", se);
@@ -242,7 +238,7 @@ public class Transpiler {
     public static void main(String... args) throws Exception {
         String dslCode = new String(Files.readAllBytes(Paths.get(args[0])), utf8);
         /*java.util.Arrays.asList("validate", "nss.tigre", "boo")*/
-        Transpiler tr = new Transpiler("org.gluu.Main", null, null);
+        Transpiler tr = new Transpiler("org.gluu.Main", null);
         Source source = tr.asXML(dslCode);
         //System.out.println(tr.getInputs(source));
         //System.out.println("\n" + tr.generateJS(source));

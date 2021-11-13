@@ -170,7 +170,7 @@ public class JavaUtil {
         cu.findAll(MethodDeclaration.class).forEach(md -> {
             String fqdn = md.findAncestor(ClassOrInterfaceDeclaration.class)
                     .map(cd -> cd.getFullyQualifiedName().orElse("!")).orElse("?");
-            logger.debug("Method {} from {}", md.getDeclarationAsString(false, false, true), fqdn);
+            logger.debug("Method {} from {} is void {}", md.getDeclarationAsString(false, false, true), fqdn, md.getType().isVoidType());
         });
         
     }

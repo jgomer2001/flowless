@@ -1,6 +1,5 @@
 package org.gluu.flowless.playground.flows;
 
-import com.google.gson.Gson;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -84,14 +83,14 @@ public class FlowsVM {
         logger.debug("Selected flow {}", name);
         Path path = Paths.get(basePath, name + ".json");
         String taskDetails = Utils.fileContents(path);
-
+/*
         try (StringReader reader = new StringReader(taskDetails)) {
             Gson gson = new Gson();
             flow = gson.fromJson(reader, Flow.class);
 
             flow.setCode(Utils.fileContents(Paths.get(basePath, name)));
         }
-
+*/
     }
 
     @NotifyChange({"flow", "flows"})
@@ -242,7 +241,7 @@ public class FlowsVM {
 
         String code = f.getCode();
         f.setCode(null);
-
+/*
         Gson gson = new Gson();
         Utils.contentsToFile(Paths.get(dest.toString() + ".json"), gson.toJson(f));
         logger.info("Saving {}", dest);
@@ -250,7 +249,7 @@ public class FlowsVM {
         
         //restore
         f.setCode(code);
-
+*/
     }
 
 }

@@ -15,6 +15,8 @@ public class Action {
     
     private Name name;
     private List<Name> inputs;
+    
+    private boolean returnsVoid;
     private String output;
 
     /**
@@ -101,6 +103,14 @@ public class Action {
 
     public void setName(Name name) {
         this.name = name;
+    }
+
+    public boolean isReturnsVoid() {
+        return returnsVoid;
+    }
+
+    public void setReturnsVoid(boolean returnsVoid) {
+        this.returnsVoid = returnsVoid;
     }
 
     @Override

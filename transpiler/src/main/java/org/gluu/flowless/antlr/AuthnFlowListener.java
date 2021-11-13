@@ -38,6 +38,16 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 */
 	void exitHeader(AuthnFlowParser.HeaderContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#base}.
+	 * @param ctx the parse tree
+	 */
+	void enterBase(AuthnFlowParser.BaseContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#base}.
+	 * @param ctx the parse tree
+	 */
+	void exitBase(AuthnFlowParser.BaseContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#inputs}.
 	 * @param ctx the parse tree
 	 */
@@ -68,15 +78,25 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 */
 	void exitStatement(AuthnFlowParser.StatementContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link AuthnFlowParser#invocation}.
+	 * Enter a parse tree produced by {@link AuthnFlowParser#preassign}.
 	 * @param ctx the parse tree
 	 */
-	void enterInvocation(AuthnFlowParser.InvocationContext ctx);
+	void enterPreassign(AuthnFlowParser.PreassignContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link AuthnFlowParser#invocation}.
+	 * Exit a parse tree produced by {@link AuthnFlowParser#preassign}.
 	 * @param ctx the parse tree
 	 */
-	void exitInvocation(AuthnFlowParser.InvocationContext ctx);
+	void exitPreassign(AuthnFlowParser.PreassignContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#preassign_catch}.
+	 * @param ctx the parse tree
+	 */
+	void enterPreassign_catch(AuthnFlowParser.Preassign_catchContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#preassign_catch}.
+	 * @param ctx the parse tree
+	 */
+	void exitPreassign_catch(AuthnFlowParser.Preassign_catchContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#variable}.
 	 * @param ctx the parse tree
@@ -98,15 +118,35 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 */
 	void exitFlow_call(AuthnFlowParser.Flow_callContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link AuthnFlowParser#task_call}.
+	 * Enter a parse tree produced by {@link AuthnFlowParser#overrides}.
 	 * @param ctx the parse tree
 	 */
-	void enterTask_call(AuthnFlowParser.Task_callContext ctx);
+	void enterOverrides(AuthnFlowParser.OverridesContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link AuthnFlowParser#task_call}.
+	 * Exit a parse tree produced by {@link AuthnFlowParser#overrides}.
 	 * @param ctx the parse tree
 	 */
-	void exitTask_call(AuthnFlowParser.Task_callContext ctx);
+	void exitOverrides(AuthnFlowParser.OverridesContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#action_call}.
+	 * @param ctx the parse tree
+	 */
+	void enterAction_call(AuthnFlowParser.Action_callContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#action_call}.
+	 * @param ctx the parse tree
+	 */
+	void exitAction_call(AuthnFlowParser.Action_callContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#rrf_call}.
+	 * @param ctx the parse tree
+	 */
+	void enterRrf_call(AuthnFlowParser.Rrf_callContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#rrf_call}.
+	 * @param ctx the parse tree
+	 */
+	void exitRrf_call(AuthnFlowParser.Rrf_callContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#log}.
 	 * @param ctx the parse tree
@@ -208,25 +248,25 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 */
 	void exitKeypair(AuthnFlowParser.KeypairContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link AuthnFlowParser#accept}.
+	 * Enter a parse tree produced by {@link AuthnFlowParser#redirect}.
 	 * @param ctx the parse tree
 	 */
-	void enterAccept(AuthnFlowParser.AcceptContext ctx);
+	void enterRedirect(AuthnFlowParser.RedirectContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link AuthnFlowParser#accept}.
+	 * Exit a parse tree produced by {@link AuthnFlowParser#redirect}.
 	 * @param ctx the parse tree
 	 */
-	void exitAccept(AuthnFlowParser.AcceptContext ctx);
+	void exitRedirect(AuthnFlowParser.RedirectContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link AuthnFlowParser#reject}.
+	 * Enter a parse tree produced by {@link AuthnFlowParser#finish}.
 	 * @param ctx the parse tree
 	 */
-	void enterReject(AuthnFlowParser.RejectContext ctx);
+	void enterFinish(AuthnFlowParser.FinishContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link AuthnFlowParser#reject}.
+	 * Exit a parse tree produced by {@link AuthnFlowParser#finish}.
 	 * @param ctx the parse tree
 	 */
-	void exitReject(AuthnFlowParser.RejectContext ctx);
+	void exitFinish(AuthnFlowParser.FinishContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#choice}.
 	 * @param ctx the parse tree
@@ -268,6 +308,26 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 */
 	void exitCaseof(AuthnFlowParser.CaseofContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#boolean_op_expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterBoolean_op_expr(AuthnFlowParser.Boolean_op_exprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#boolean_op_expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitBoolean_op_expr(AuthnFlowParser.Boolean_op_exprContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#boolean_expr}.
+	 * @param ctx the parse tree
+	 */
+	void enterBoolean_expr(AuthnFlowParser.Boolean_exprContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#boolean_expr}.
+	 * @param ctx the parse tree
+	 */
+	void exitBoolean_expr(AuthnFlowParser.Boolean_exprContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#elseblock}.
 	 * @param ctx the parse tree
 	 */
@@ -297,4 +357,44 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitQuit_stmt(AuthnFlowParser.Quit_stmtContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#statusr_block}.
+	 * @param ctx the parse tree
+	 */
+	void enterStatusr_block(AuthnFlowParser.Statusr_blockContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#statusr_block}.
+	 * @param ctx the parse tree
+	 */
+	void exitStatusr_block(AuthnFlowParser.Statusr_blockContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#statusr_allow}.
+	 * @param ctx the parse tree
+	 */
+	void enterStatusr_allow(AuthnFlowParser.Statusr_allowContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#statusr_allow}.
+	 * @param ctx the parse tree
+	 */
+	void exitStatusr_allow(AuthnFlowParser.Statusr_allowContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#statusr_reply}.
+	 * @param ctx the parse tree
+	 */
+	void enterStatusr_reply(AuthnFlowParser.Statusr_replyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#statusr_reply}.
+	 * @param ctx the parse tree
+	 */
+	void exitStatusr_reply(AuthnFlowParser.Statusr_replyContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#statusr_until}.
+	 * @param ctx the parse tree
+	 */
+	void enterStatusr_until(AuthnFlowParser.Statusr_untilContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#statusr_until}.
+	 * @param ctx the parse tree
+	 */
+	void exitStatusr_until(AuthnFlowParser.Statusr_untilContext ctx);
 }

@@ -29,8 +29,10 @@ public class SimpleMethodDeclaration {
     
     public Action makeAction(String clsName) {
 
+        boolean isVoid = methodDeclaration.getType().isVoidType();
         Action a = new Action();
         a.setId(String.format("%s#%s", clsName, methodDeclaration.getName().asString()));
+        a.setReturnsVoid(isVoid);
 
         Javadoc javaDoc = methodDeclaration.getJavadoc().orElse(null);
         if (javaDoc != null) {
@@ -55,7 +57,11 @@ public class SimpleMethodDeclaration {
                             inputs.add(input);
                         break;
                     case RETURN:
-                        output = block.getContent().toText();
+                        if (isVoid) {
+                            logger.warn("Ignoring @return javadoc tag in void method");
+                        } else {
+                            output = block.getContent().toText();
+                        }
                         break;
                     case THROWS:
                         thrws += ", (" + block.getName().orElse("") + ") " + block.getContent().toText();
@@ -65,9 +71,12 @@ public class SimpleMethodDeclaration {
             
             String desc = javaDoc.getDescription().toText();
             if (deprecated) {
-                desc = "This method is deprecated!. " + desc;
+                desc = "This action is based on a deprecated method!. " + desc;
             }
             
+            if (isVoid) {
+                output = "This action does not return any value";
+            }
             if (thrws.length() > 0) {
                 if (output.length() > 0) {
                     output += ". ";

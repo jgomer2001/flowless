@@ -29,6 +29,12 @@ public interface AuthnFlowVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitHeader(AuthnFlowParser.HeaderContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#base}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBase(AuthnFlowParser.BaseContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#inputs}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -47,11 +53,17 @@ public interface AuthnFlowVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitStatement(AuthnFlowParser.StatementContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AuthnFlowParser#invocation}.
+	 * Visit a parse tree produced by {@link AuthnFlowParser#preassign}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitInvocation(AuthnFlowParser.InvocationContext ctx);
+	T visitPreassign(AuthnFlowParser.PreassignContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#preassign_catch}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPreassign_catch(AuthnFlowParser.Preassign_catchContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#variable}.
 	 * @param ctx the parse tree
@@ -65,11 +77,23 @@ public interface AuthnFlowVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFlow_call(AuthnFlowParser.Flow_callContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AuthnFlowParser#task_call}.
+	 * Visit a parse tree produced by {@link AuthnFlowParser#overrides}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitTask_call(AuthnFlowParser.Task_callContext ctx);
+	T visitOverrides(AuthnFlowParser.OverridesContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#action_call}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitAction_call(AuthnFlowParser.Action_callContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#rrf_call}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRrf_call(AuthnFlowParser.Rrf_callContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#log}.
 	 * @param ctx the parse tree
@@ -131,17 +155,17 @@ public interface AuthnFlowVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitKeypair(AuthnFlowParser.KeypairContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AuthnFlowParser#accept}.
+	 * Visit a parse tree produced by {@link AuthnFlowParser#redirect}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitAccept(AuthnFlowParser.AcceptContext ctx);
+	T visitRedirect(AuthnFlowParser.RedirectContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AuthnFlowParser#reject}.
+	 * Visit a parse tree produced by {@link AuthnFlowParser#finish}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitReject(AuthnFlowParser.RejectContext ctx);
+	T visitFinish(AuthnFlowParser.FinishContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#choice}.
 	 * @param ctx the parse tree
@@ -167,6 +191,18 @@ public interface AuthnFlowVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitCaseof(AuthnFlowParser.CaseofContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#boolean_op_expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBoolean_op_expr(AuthnFlowParser.Boolean_op_exprContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#boolean_expr}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitBoolean_expr(AuthnFlowParser.Boolean_exprContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#elseblock}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -184,4 +220,28 @@ public interface AuthnFlowVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitQuit_stmt(AuthnFlowParser.Quit_stmtContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#statusr_block}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStatusr_block(AuthnFlowParser.Statusr_blockContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#statusr_allow}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStatusr_allow(AuthnFlowParser.Statusr_allowContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#statusr_reply}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStatusr_reply(AuthnFlowParser.Statusr_replyContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#statusr_until}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStatusr_until(AuthnFlowParser.Statusr_untilContext ctx);
 }

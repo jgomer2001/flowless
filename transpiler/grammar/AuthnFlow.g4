@@ -33,32 +33,42 @@ flow: header statement+ ;
 
 qname: ALPHANUM | DOTEXPR ;
 
-header: FLOWSTART WS qname WS? NL inputs? NL* ;	// header always ends in a NL
+header: FLOWSTART WS qname WS? INDENT base inputs? DEDENT NL* ;
+// header always ends in a NL
 
+base: BASE WS STRING WS? NL;
+ 
 inputs: FLOWINPUTS param* WS? NL ;
 
 param: WS ALPHANUM ;
 
 
-statement: (invocation | assignment | log | accept | reject | ifelse | choice | loop) ;
+statement: (flow_call | action_call | rrf_call | assignment | log | redirect | finish | ifelse | choice | loop) ;
 
-invocation: (variable WS? EQ WS?)? (flow_call | task_call) NL ;
+preassign: variable WS? EQ WS? ;
+
+preassign_catch: variable WS? '|' WS? ALPHANUM WS? EQ WS? ;
 
 variable: ALPHANUM | IDXEXPR | DOTEXPR | DOTIDXEXPR ;
 
-flow_call: FLOWCALL WS call ;
+flow_call: preassign? FLOWCALL WS call (overrides | NL) ;
 
-task_call: TASKCALL WS call ;
+overrides: INDENT OVERRIDE WS STRING (WS STRING)* WS? NL DEDENT ;
+//I don't get why the NL is needed above
+
+action_call: (preassign | preassign_catch)? ACTIONCALL WS call NL ;
+
+rrf_call: preassign? RRFCALL WS STRING (WS variable)? WS? (statusr_block | NL) ;
 
 log: LOG argument+ WS? NL ;
 
-call: qname argument* WS?;
+call: qname ('#' ALPHANUM)? argument* WS? ;
 
 argument: WS simple_expr ;
 
-simple_expr: literal | variable ;
+simple_expr: literal | variable | (MINUS variable) ;
 
-literal: BOOL | DECIMAL | STRING ;
+literal: BOOL | STRING | UINT | SINT | DECIMAL | NUL;
 
 expression: object_expr | array_expr | simple_expr ;
 
@@ -66,13 +76,13 @@ array_expr: '[' WS? expression* (SPCOMMA expression)* WS? ']' ;
 
 object_expr: '{' WS? keypair* (SPCOMMA keypair)* WS? '}' ;
 
-assignment: variable WS? EQ WS? expression NL ;
+assignment: preassign expression NL ;
 
 keypair: ALPHANUM WS? ':' WS? expression ;
 
-accept: ACCEPT WS (STRING | object_expr) WS? NL ;
+redirect: REDIRECT WS STRING WS UINT? NL;
 
-reject: REJECT WS (STRING | object_expr) WS? NL ;
+finish: FINISH WS (BOOL | object_expr) WS? NL ;
 
 choice: MATCH WS simple_expr WS TO WS? INDENT option+ DEDENT elseblock? ;
 
@@ -80,13 +90,25 @@ option: simple_expr WS? INDENT statement+ DEDENT ;
 
 ifelse: caseof WS? INDENT statement+ DEDENT elseblock? ;
 
-caseof: WHEN WS simple_expr WS IS WS simple_expr ;
+caseof: WHEN WS boolean_expr boolean_op_expr* ;
+
+boolean_op_expr: WS (AND | OR) WS boolean_expr ;
+
+boolean_expr: simple_expr WS IS WS (NOT WS)? simple_expr ;
 
 elseblock: OTHERWISE WS? INDENT statement+ DEDENT ;
 
-loop: TRY WS simple_expr WS TRYTIMES WS? INDENT statement+ quit_stmt? DEDENT ;
+loop: REPEAT WS (variable | UINT) WS MAXTIMES WS? INDENT statement+ quit_stmt? DEDENT ;
 
 quit_stmt: QUIT WS caseof WS? NL elseblock? ;
+
+statusr_block: INDENT STATUS_REQ WS? INDENT statusr_allow statusr_reply statusr_until DEDENT DEDENT ;
+
+statusr_allow: ALLOW WS (variable | UINT) WS SECS WS? NL;
+
+statusr_reply: REPLY WS call NL ;
+
+statusr_until: UNTIL WS boolean_expr WS? NL;
 
 /*
  * Lexer Rules
@@ -95,49 +117,79 @@ quit_stmt: QUIT WS caseof WS? NL elseblock? ;
 fragment DIGIT : [0-9] ;
 fragment CH : [a-zA-Z_] ;
 fragment ALNUM : CH (CH | DIGIT)* ;
-fragment UINT : DIGIT+ ;
 fragment SPACES: [\t ]+ ;
 fragment COMMA: ',' ;
 
-COMMENT: '//' ~[\r\n]* -> skip;
+COMMENT: '//' ~[\r\n]* -> skip ;
 
 FLOWSTART: 'Flow' ;
 
-FLOWINPUTS: 'Inputs:' ;
+BASE: 'Basepath' ;
+
+FLOWINPUTS: 'Inputs' ;
 
 LOG: 'Log' ;
 
 FLOWCALL: 'Trigger' ;
 
-TASKCALL: 'Call' ;
+ACTIONCALL: 'Call' ;
+
+RRFCALL: 'RRF' ;
+
+STATUS_REQ: 'Status requests' ;
+
+ALLOW: 'Allow for' ;
+
+REPLY: 'Reply' ;
+
+UNTIL: 'Until' ;
+
+OVERRIDE: 'Override templates' ;
 
 WHEN: 'When' ;
 
-IS: 'is' ;
-
 OTHERWISE: 'Otherwise' ;
+
+REPEAT: 'Repeat' ;
 
 MATCH: 'Match' ;
 
-TO: 'to' ;
-
-TRY: 'Try' ;
-
-TRYTIMES: 'times' ;
-
 QUIT: 'Quit' ;
 
-ACCEPT: 'Accept' ;
+FINISH: 'Finish' ;
 
-REJECT: 'Reject' ;
+REDIRECT: 'Redirect' ;
+
+IS: 'is' ;
+
+NOT: 'not' ;
+
+AND: 'and' ;
+
+OR: 'or' ;
+
+SECS: 'seconds' ;
+
+TO: 'to' ;
+
+MAXTIMES: 'times at most' ;
 
 EQ: '=' ;
 
-BOOL: 'false' | 'true' ;
- 
-DECIMAL: '-'? UINT ('.' UINT)? ;
+MINUS: '-' ;
 
-STRING: '"' [\u0009\u0020-\u007E\u0080-\u008C\u00A0-\uFFFF]* '"' ;
+NUL: 'null' ;
+
+BOOL: 'false' | 'true' ;
+
+STRING: '"' [\u0009\u0020\u0021\u0023-\u007E\u0080-\u008C\u00A0-\uFFFF]* '"' ;
+//horizontal tab, space, exclamation mark, ASCII chars from hash(#) to tilde(~), plus other printable unicode chars 
+
+UINT : DIGIT+ ;
+
+SINT : MINUS UINT ;
+
+DECIMAL: (SINT | UINT) '.' UINT ;
 
 ALPHANUM: ALNUM ;
 
