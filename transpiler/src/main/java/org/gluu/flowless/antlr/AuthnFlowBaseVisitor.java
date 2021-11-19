@@ -52,7 +52,7 @@ public class AuthnFlowBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitParam(AuthnFlowParser.ParamContext ctx) { return visitChildren(ctx); }
+	@Override public T visitShort_var(AuthnFlowParser.Short_varContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

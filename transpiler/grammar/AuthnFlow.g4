@@ -38,18 +38,17 @@ header: FLOWSTART WS qname WS? INDENT base inputs? DEDENT NL* ;
 
 base: BASE WS STRING WS? NL;
  
-inputs: FLOWINPUTS param* WS? NL ;
+inputs: FLOWINPUTS (WS short_var)* WS? NL ;
 
-param: WS ALPHANUM ;
-
+short_var: ALPHANUM ;
 
 statement: (flow_call | action_call | rrf_call | assignment | log | redirect | finish | ifelse | choice | loop) ;
 
 preassign: variable WS? EQ WS? ;
 
-preassign_catch: variable WS? '|' WS? ALPHANUM WS? EQ WS? ;
+preassign_catch: variable WS? '|' WS? short_var WS? EQ WS? ;
 
-variable: ALPHANUM | IDXEXPR | DOTEXPR | DOTIDXEXPR ;
+variable: short_var | IDXEXPR | DOTEXPR | DOTIDXEXPR ;
 
 flow_call: preassign? FLOWCALL WS call (overrides | NL) ;
 
@@ -58,7 +57,7 @@ overrides: INDENT OVERRIDE WS STRING (WS STRING)* WS? NL DEDENT ;
 
 action_call: (preassign | preassign_catch)? ACTIONCALL WS call NL ;
 
-rrf_call: preassign? RRFCALL WS STRING (WS variable)? WS? (statusr_block | NL) ;
+rrf_call: preassign? RRFCALL WS STRING (WS variable | object_expr)? WS? (statusr_block | NL) ;
 
 log: LOG argument+ WS? NL ;
 

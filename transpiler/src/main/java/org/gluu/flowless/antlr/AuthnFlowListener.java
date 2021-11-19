@@ -58,15 +58,15 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 */
 	void exitInputs(AuthnFlowParser.InputsContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link AuthnFlowParser#param}.
+	 * Enter a parse tree produced by {@link AuthnFlowParser#short_var}.
 	 * @param ctx the parse tree
 	 */
-	void enterParam(AuthnFlowParser.ParamContext ctx);
+	void enterShort_var(AuthnFlowParser.Short_varContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link AuthnFlowParser#param}.
+	 * Exit a parse tree produced by {@link AuthnFlowParser#short_var}.
 	 * @param ctx the parse tree
 	 */
-	void exitParam(AuthnFlowParser.ParamContext ctx);
+	void exitShort_var(AuthnFlowParser.Short_varContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#statement}.
 	 * @param ctx the parse tree

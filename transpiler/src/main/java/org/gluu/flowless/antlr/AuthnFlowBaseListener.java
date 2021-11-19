@@ -76,13 +76,13 @@ public class AuthnFlowBaseListener implements AuthnFlowListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterParam(AuthnFlowParser.ParamContext ctx) { }
+	@Override public void enterShort_var(AuthnFlowParser.Short_varContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitParam(AuthnFlowParser.ParamContext ctx) { }
+	@Override public void exitShort_var(AuthnFlowParser.Short_varContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

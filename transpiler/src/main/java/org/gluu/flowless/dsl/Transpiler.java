@@ -1,15 +1,20 @@
 package org.gluu.flowless.dsl;
 
+import freemarker.ext.dom.NodeModel;
+import freemarker.template.Configuration;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
+import freemarker.template.TemplateExceptionHandler;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -18,18 +23,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.xml.transform.Source;
-import javax.xml.transform.stream.StreamSource;
 
+import net.sf.saxon.dom.NodeOverNodeInfo;
 import net.sf.saxon.s9api.Processor;
 import net.sf.saxon.s9api.SaxonApiException;
 import net.sf.saxon.s9api.Serializer;
-import net.sf.saxon.s9api.StaticError;
 import net.sf.saxon.s9api.XPathCompiler;
 import net.sf.saxon.s9api.XdmItem;
 import net.sf.saxon.s9api.XdmNode;
-import net.sf.saxon.s9api.Xslt30Transformer;
-import net.sf.saxon.s9api.XsltCompiler;
-import net.sf.saxon.s9api.XsltExecutable;
 import net.sf.saxon.sapling.SaplingDocument;
 
 import org.antlr.v4.runtime.CharStream;
@@ -46,16 +47,16 @@ import org.slf4j.LoggerFactory;
 
 public class Transpiler {
 
-    private static final Charset utf8 = StandardCharsets.UTF_8;
-    private static final String XSL_LOCATION = "JSGenerator.xsl";
+    private static final Charset UTF8 = StandardCharsets.UTF_8;
+    private static final String FTL_LOCATION = "JSGenerator.ftl";
 
     private Logger logger = LoggerFactory.getLogger(getClass());
     private String flowId;
     private Set<String> flowNames;
 
     private Processor processor;
-    private XsltExecutable stylesheet;
     private XPathCompiler xpathCompiler;
+    private Template jsGenerator;
 
     private void initialize(String flowId, List<String> flowNames)
             throws TranspilerException {
@@ -68,23 +69,10 @@ public class Transpiler {
         }
 
         processor = new Processor(false);
-        List<StaticError> errors = new ArrayList<>();
-
         xpathCompiler = processor.newXPathCompiler();
         xpathCompiler.setCaching(true);
-        XsltCompiler xsltCompiler = processor.newXsltCompiler();
-        xsltCompiler.setErrorList(errors);
 
-        StreamSource xslSource = new StreamSource(new InputStreamReader(
-                getClass().getClassLoader().getResourceAsStream(XSL_LOCATION), utf8));
-        try {
-            logger.debug("Compiling XSL");
-            stylesheet = xsltCompiler.compile(xslSource);
-        } catch (SaxonApiException se) {
-            String msg = "XSL compilation failed: ";
-            throw new TranspilerException(msg + errors.stream().
-                    map(StaticError::getMessage).collect(Collectors.joining("\n")), se);
-        }
+        loadFreeMarkerTemplate();
 
     }
 
@@ -95,10 +83,29 @@ public class Transpiler {
     public Transpiler(String flowName, List<String> flowNames) throws TranspilerException {
         initialize(flowName, flowNames);
     }
+    
+    private void loadFreeMarkerTemplate() throws TranspilerException {
+        
+        try{
+            Configuration fmConfig = new Configuration(Configuration.VERSION_2_3_31);
+            fmConfig.setClassLoaderForTemplateLoading(getClass().getClassLoader(), "/");
+            fmConfig.setDefaultEncoding(UTF8.toString());
+            //TODO: ?
+            //fmConfig.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
+            fmConfig.setTemplateExceptionHandler(TemplateExceptionHandler.DEBUG_HANDLER);
+            fmConfig.setLogTemplateExceptions(false);
+            fmConfig.setWrapUncheckedExceptions(true);
+            fmConfig.setFallbackOnNullLoopVariable(false);
+            jsGenerator = fmConfig.getTemplate(FTL_LOCATION);
+        } catch (Exception e) {
+            throw new TranspilerException("Template loading failed", e);
+        }
+        
+    }
 
-    public Source asXML(String DSLCode) throws SyntaxException, TranspilerException {
+    public SaplingDocument asXML(String DSLCode) throws SyntaxException, TranspilerException {
 
-        InputStream is = new ByteArrayInputStream(DSLCode.getBytes(utf8));
+        InputStream is = new ByteArrayInputStream(DSLCode.getBytes(UTF8));
         CharStream input = null;
 
         try {
@@ -149,27 +156,21 @@ public class Transpiler {
     public List<String> getInputs(Source doc) throws SaxonApiException {
         
         XdmNode node = processor.newDocumentBuilder().build(doc);
-        return xpathCompiler.evaluate("/flow/header/inputs/param/ALPHANUM/text()", node)
+        return xpathCompiler.evaluate("/flow/header/inputs/short_var/text()", node)
                     .stream().map(XdmItem::getStringValue).collect(Collectors.toList());
     }
     
-    public String generateJS(Source doc) throws TranspilerException {
+    public String generateJS(SaplingDocument doc) throws TranspilerException  {
 
         try {
             StringWriter sw = new StringWriter();
-            Serializer serializer = processor.newSerializer(sw);
-
-            //Load stylesheet and apply transformation
-            logger.debug("Loading transformer");
-            Xslt30Transformer transformer = stylesheet.load30();
-            logger.debug("Generating code");
-            transformer.transform(doc, serializer);
-
+            NodeModel model = asNodeModel(doc);
+            jsGenerator.process(model, sw);
             return sw.toString();
-
-        } catch (SaxonApiException se) {
-            throw new TranspilerException("Transformation failed", se);
+        } catch (IOException | TemplateException | SaxonApiException e) {
+            throw new TranspilerException("Transformation failed", e);
         }
+
 
     }
 
@@ -180,10 +181,7 @@ public class Transpiler {
             
             if (flowId != null) {                
                 //validate flow name is consistent
-                XdmItem itemName = xpathCompiler.evaluateSingle("/flow/header/qname/DOTEXPR/text()", node);
-                if (itemName == null) {
-                    itemName = xpathCompiler.evaluateSingle("/flow/header/qname/ALPHANUM/text()", node);
-                }
+                XdmItem itemName = xpathCompiler.evaluateSingle(Visitor.FLOWNAME_XPATH_EXPR, node);
                 String name = Optional.ofNullable(itemName).map(XdmItem::getStringValue).orElse("");  
                 
                 if (!flowId.equals(name)) {
@@ -234,14 +232,26 @@ public class Transpiler {
         }
 
     }
+    
+    private NodeModel asNodeModel(SaplingDocument doc) throws SaxonApiException {
+        return NodeModel.wrap(NodeOverNodeInfo.wrap(
+                doc.toXdmNode(processor).getUnderlyingNode()));
+    }
 
     public static void main(String... args) throws Exception {
-        String dslCode = new String(Files.readAllBytes(Paths.get(args[0])), utf8);
-        /*java.util.Arrays.asList("validate", "nss.tigre", "boo")*/
+        
         Transpiler tr = new Transpiler("org.gluu.Main", null);
-        Source source = tr.asXML(dslCode);
-        //System.out.println(tr.getInputs(source));
-        //System.out.println("\n" + tr.generateJS(source));
+        String dslCode = new String(Files.readAllBytes(Paths.get(args[0])), UTF8);
+        SaplingDocument doc = tr.asXML(dslCode);
+        System.out.println(tr.getInputs(doc));
+        System.out.println("\n" + tr.generateJS(doc));
+
+        //tr.qTest(args[0]+".xml");
+    }
+    
+    public void qTest(String fileName) throws Exception {
+        NodeModel model = NodeModel.parse(Paths.get(fileName).toFile());
+        jsGenerator.process(model, new OutputStreamWriter(System.out));       
     }
 
 }

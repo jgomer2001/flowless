@@ -41,11 +41,11 @@ public interface AuthnFlowVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitInputs(AuthnFlowParser.InputsContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AuthnFlowParser#param}.
+	 * Visit a parse tree produced by {@link AuthnFlowParser#short_var}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitParam(AuthnFlowParser.ParamContext ctx);
+	T visitShort_var(AuthnFlowParser.Short_varContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#statement}.
 	 * @param ctx the parse tree
