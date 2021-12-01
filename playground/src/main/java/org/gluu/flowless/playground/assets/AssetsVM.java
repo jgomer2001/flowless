@@ -32,7 +32,7 @@ public class AssetsVM {
 
     private static final String[] TXT_EXTENSIONS = new String[]{"css", "js", "txt",
         "xml", "html", "htm", "xhtml"};
-    private static final String ASSETS_DIR = "assets";
+    private static final String ASSETS_DIR = "fl";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private boolean markupOnly;

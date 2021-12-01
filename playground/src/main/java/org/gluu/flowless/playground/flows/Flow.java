@@ -2,8 +2,8 @@ package org.gluu.flowless.playground.flows;
 
 public class Flow {
 
-    private String name;
-    private String namespace;
+    private String qname;
+    private String id;
     private String author;
     private long timestamp;
     private boolean editable;
@@ -15,29 +15,15 @@ public class Flow {
     /**
      * @return the name
      */
-    public String getName() {
-        return name;
+    public String getQname() {
+        return qname;
     }
 
     /**
      * @param name the name to set
      */
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    /**
-     * @return the namespace
-     */
-    public String getNamespace() {
-        return namespace;
-    }
-
-    /**
-     * @param namespace the namespace to set
-     */
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
+    public void setQname(String name) {
+        this.qname = name;
     }
 
     /**
@@ -122,6 +108,14 @@ public class Flow {
      */
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
 }

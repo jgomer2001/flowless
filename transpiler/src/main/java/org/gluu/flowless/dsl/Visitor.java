@@ -46,7 +46,7 @@ public class Visitor {
         
         INCLUDE_SYMBOLS = new HashSet(Arrays.asList(includeSymbols));
        
-        // Based on https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar
+        // Based on https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#keywords
         String[] javascriptKeywords = new String[] {
             "break", "case", "catch", "class", "const", "continue", 
             "debugger", "default", "delete", "do", "else", "export", "extends", 
@@ -158,8 +158,8 @@ public class Visitor {
         
     }
     
-    public static SaplingDocument document(ParseTree tree, int ruleIndex) {
-        return Saplings.doc().withChild(visitElement(tree, ruleIndex));
+    public static SaplingDocument document(ParseTree tree, int ruleIndex, String treeId) {
+        return Saplings.doc().withChild(visitElement(tree, ruleIndex).withAttr("id", treeId));
     }
 
 }

@@ -1,15 +1,16 @@
 <#ftl output_format="JavaScript">
 
 //Generated at ${.now?iso_utc}
-function 
-<#recurse flow>
+function ${flow.@id}<#recurse flow>
 }
 
 <#macro header>
-_${.node.qname?replace(".", "_")}
-    (${.node.inputs.short_var?join(", ")}) {
-
-setBasepath(${.node.base.STRING})
+(
+<#if .node.inputs?size gt 0>
+    ${.node.inputs.short_var?join(", ")}
+</#if>
+) {
+_basePath = ${.node.base.STRING}
 </#macro>
 
 <#macro statement>
@@ -19,16 +20,12 @@ setBasepath(${.node.base.STRING})
 <#macro assignment><@util_preassign node=.node /> ${.node.expression}</#macro>
 
 <#macro rrf_call>
-    <#if .node.object_expr?size = 0>
-it = ${.node.variable}
-    <#else>
-it = ${.node.object_expr}
-    </#if>
+    <#if .node.statusr_block?size gt 0><#visit .node.statusr_block></#if>
+    <#assign isvar = .node.object_expr?size = 0>
+    it = ${isvar?then(.node.variable!"", .node.object_expr!"")}
 
-    <@util_preassign node=.node />
-RenderReplyFetch(${.node.STRING}, it)
-
-    <#if .node.statusr_block?size gt 0>// TODO statusr_block</#if>
+<@util_preassign node=.node />
+RenderReplyFetch(_basePath, ${.node.STRING}, it)
 </#macro>
 
 <#macro action_call>
@@ -50,7 +47,7 @@ try {
 
 <#macro flow_call>
     <@util_preassign node=.node />
-FlowCall(<@util_url_overrides node=.node.overrides/>,<#visit .node.call>)
+FlowCall(<@util_url_overrides node=.node.overrides/>, <#visit .node.call>)
 </#macro>
 
 <#macro call>
@@ -68,7 +65,7 @@ Redirect(${.node.STRING}<#if .node.UINT?size gt 0>, ${.node.UINT}</#if>)
 <#else>
     it = ${.node.object_expr}
 </#if>
-Finish(it)
+return it
 </#macro>
 
 <#macro loop>
@@ -130,6 +127,15 @@ equals(${.node.simple_expr[0]}, ${.node.simple_expr[1]})
 
 <#macro log>
 Log(<@util_argslist node=.node prefix="" />)
+</#macro>
+
+<#macro statusr_block>
+    <#assign isuint = .node.statusr_allow.variable?size = 0>
+    <#assign isequality = statusr_until.boolean_expr.NOT?size gt 0>
+
+AllowStatusRequest(${isuint?then(.node.statusr_allow.UINT!"", .node.statusr_allow.variable!"")},
+    "${.node.statusr_until.boolean_expr.simple_expr[0]!""}", "${.node.statusr_until.boolean_expr.simple_expr[1]!""}",
+    ${isequality?c}, [<#recurse .node.statusr_reply>])
 </#macro>
 
 <#macro util_else node>

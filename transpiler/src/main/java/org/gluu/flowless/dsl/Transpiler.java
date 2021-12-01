@@ -11,8 +11,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -45,23 +43,26 @@ import org.gluu.flowless.dsl.error.RecognitionErrorListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 public class Transpiler {
 
-    private static final Charset UTF8 = StandardCharsets.UTF_8;
     private static final String FTL_LOCATION = "JSGenerator.ftl";
 
     private Logger logger = LoggerFactory.getLogger(getClass());
     private String flowId;
+    private String flowName;
     private Set<String> flowNames;
 
     private Processor processor;
     private XPathCompiler xpathCompiler;
     private Template jsGenerator;
 
-    private void initialize(String flowId, List<String> flowNames)
+    public Transpiler(String flowId, String flowName, List<String> flowNames)
             throws TranspilerException {
 
         this.flowId = flowId;
+        this.flowName = flowName;
         this.flowNames = Optional.ofNullable(flowNames).map(HashSet::new).orElse(null);
         
         if (Stream.of(flowNames, flowId).allMatch(Objects::nonNull)) {
@@ -75,21 +76,13 @@ public class Transpiler {
         loadFreeMarkerTemplate();
 
     }
-
-    public Transpiler() throws TranspilerException {
-        initialize(null, null);
-    }
-
-    public Transpiler(String flowName, List<String> flowNames) throws TranspilerException {
-        initialize(flowName, flowNames);
-    }
     
     private void loadFreeMarkerTemplate() throws TranspilerException {
         
         try{
             Configuration fmConfig = new Configuration(Configuration.VERSION_2_3_31);
             fmConfig.setClassLoaderForTemplateLoading(getClass().getClassLoader(), "/");
-            fmConfig.setDefaultEncoding(UTF8.toString());
+            fmConfig.setDefaultEncoding(UTF_8.toString());
             //TODO: ?
             //fmConfig.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
             fmConfig.setTemplateExceptionHandler(TemplateExceptionHandler.DEBUG_HANDLER);
@@ -105,7 +98,7 @@ public class Transpiler {
 
     public SaplingDocument asXML(String DSLCode) throws SyntaxException, TranspilerException {
 
-        InputStream is = new ByteArrayInputStream(DSLCode.getBytes(UTF8));
+        InputStream is = new ByteArrayInputStream(DSLCode.getBytes(UTF_8));
         CharStream input = null;
 
         try {
@@ -140,7 +133,7 @@ public class Transpiler {
             logger.debug("Traversing parse tree");
             //Generate XML representation
 
-            SaplingDocument document = Visitor.document(flowContext, AuthnFlowParser.RULE_flow);
+            SaplingDocument document = Visitor.document(flowContext, AuthnFlowParser.RULE_flow, flowId);
             applyValidations(document);
             logXml(document);
             return document;
@@ -179,14 +172,14 @@ public class Transpiler {
         try {
             XdmNode node = doc.toXdmNode(processor);
             
-            if (flowId != null) {                
+            if (flowName != null) {                
                 //validate flow name is consistent
                 XdmItem itemName = xpathCompiler.evaluateSingle(Visitor.FLOWNAME_XPATH_EXPR, node);
                 String name = Optional.ofNullable(itemName).map(XdmItem::getStringValue).orElse("");  
                 
-                if (!flowId.equals(name)) {
+                if (!flowName.equals(name)) {
                     throw new TranspilerException(
-                        String.format("Expecting flow name '%s', but '%s' was found", flowId, name));
+                        String.format("Expecting flow name '%s', but '%s' was found", flowName, name));
                 }
             }
             
@@ -240,8 +233,8 @@ public class Transpiler {
 
     public static void main(String... args) throws Exception {
         
-        Transpiler tr = new Transpiler("org.gluu.Main", null);
-        String dslCode = new String(Files.readAllBytes(Paths.get(args[0])), UTF8);
+        Transpiler tr = new Transpiler("main_test1", "test1"/*org.gluu.Main"*/, null);
+        String dslCode = new String(Files.readAllBytes(Paths.get(args[0])), UTF_8);
         SaplingDocument doc = tr.asXML(dslCode);
         System.out.println(tr.getInputs(doc));
         System.out.println("\n" + tr.generateJS(doc));

@@ -31,7 +31,8 @@ public class SimpleMethodDeclaration {
 
         boolean isVoid = methodDeclaration.getType().isVoidType();
         Action a = new Action();
-        a.setId(String.format("%s#%s", clsName, methodDeclaration.getName().asString()));
+        a.setId(String.format("%s#%s_%d", clsName, methodDeclaration.getName().asString(),
+                methodDeclaration.getParameters().size()));
         a.setReturnsVoid(isVoid);
 
         Javadoc javaDoc = methodDeclaration.getJavadoc().orElse(null);

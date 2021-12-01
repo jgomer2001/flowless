@@ -32,7 +32,8 @@ public class TreeModel {
     public static SortedSet<String> ALLOWED_EXTENSIONS = Stream.of(EXTENSIONS)
             .collect(Collectors.toCollection(TreeSet::new));
             
-    private static Set<String> MARKUP_EXTENSIONS = Stream.of("html", "htm", "xhtml")
+    private static Set<String> MARKUP_EXTENSIONS = Stream.of("html", "htm", "xhtml",
+            "ftl", "ftlh")
             .collect(Collectors.toCollection(HashSet::new));
     
     private static final Logger logger = LoggerFactory.getLogger(TreeModel.class);
