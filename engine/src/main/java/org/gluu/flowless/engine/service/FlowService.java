@@ -5,8 +5,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
-import java.io.StringWriter;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,7 +19,6 @@ import javax.inject.Inject;
 
 import org.gluu.flowless.engine.exception.FlowCrashException;
 import org.gluu.flowless.engine.exception.FlowTimeoutException;
-import org.gluu.flowless.engine.exception.TemplateProcessingException;
 import org.gluu.flowless.engine.misc.FlowUtils;
 import org.gluu.flowless.engine.model.EngineConfig;
 import org.gluu.flowless.engine.model.Flow;
@@ -34,13 +31,16 @@ import org.mozilla.javascript.NativeContinuation;
 import org.mozilla.javascript.Scriptable;
 import org.slf4j.Logger;
 
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 @ApplicationScoped
 public class FlowService {
 
     private static final String FLOWS_DIR = "flows";
     private static final String SCRIPT_SUFFIX = ".js";
     private static final String METADATA_SUFFIX = ".json";
-    private static final String JS_TEMPLATE = "JSTemplate.ftl";
+    private static final String JS_UTIL = "util.js";
     
     @Inject
     private Logger logger;
@@ -49,10 +49,7 @@ public class FlowService {
     private ObjectMapper mapper;
     
     @Inject
-    private EngineConfig engineConf; 
-    
-    @Inject
-    private TemplatingService templatingService; 
+    private EngineConfig engineConf;
   
     /**
      * Obtains the status of the current flow (if any) for the current user
@@ -70,47 +67,42 @@ public class FlowService {
     public FlowStatus startFlow(String flowName, String sessionId, String strParams)
             throws FlowCrashException {
         
+        FlowStatus status = null;
         try {            
-            //retrieve the flow, execute until render is reached, and suspend
+            //retrieve the flow, execute until render/redirect is reached
             Flow fl = getFlowObject(flowName);
             String funcName = fl.getId();
             Object[] params = getFlowParams(fl.getInputNames(), strParams);
             
+            String baseCode = FlowUtils.fread(EngineConfig.ROOT_DIR, JS_UTIL);
             String flowCodeFileName = flowName + SCRIPT_SUFFIX;
-            Path flowCodePath = Paths.get(EngineConfig.ROOT_DIR, FLOWS_DIR, flowCodeFileName);
-
-            Map<String, String> dataModel = Collections.singletonMap("fun", Files.readString(flowCodePath, UTF_8));
-            StringWriter jsCode = new StringWriter();
-            templatingService.process(JS_TEMPLATE, dataModel, jsCode, true);
-            logger.debug("Generated code:\n{}", jsCode.toString());
+            String flowCode = FlowUtils.fread(EngineConfig.ROOT_DIR, FLOWS_DIR, flowCodeFileName);
 
             Context cx = Context.enter();
             Scriptable globalScope = null;
+            
             try {
+                logger.info("Evaluating flow code");
                 globalScope = initContext(cx);
-                cx.evaluateString(globalScope, jsCode.toString(), flowCodeFileName, 1, null);
+                cx.evaluateString(globalScope, baseCode, JS_UTIL, 1, null);
+                printScopeIds(globalScope);
+                
+                cx.evaluateString(globalScope, flowCode, flowCodeFileName, 1, null);
+                printScopeIds(globalScope);
 
-                Function f = (Function) globalScope.get(funcName, globalScope);
                 logger.info("Executing function {}", funcName);
-                cx.callFunctionWithContinuations(f, globalScope, params);
+                Function f = (Function) globalScope.get(funcName, globalScope);
+                Object result = cx.callFunctionWithContinuations(f, globalScope, params);
+                
+                status = new FlowStatus();
+                status.setResult(FlowUtils.flowResultFrom(result));
+                terminateFlow(sessionId);
+                
             } catch (ContinuationPending pe) {
-                Pair<String, Object> p = (Pair<String, Object>) pe.getApplicationState();
-                String templPath = p.getFirst();
-                
-                if (!templPath.contains("."))
-                    throw new FlowCrashException("Expecting file extension for the template to render: " + templPath);
-                
-                FlowStatus status = new FlowStatus();
-                status.setStartedAt(System.currentTimeMillis());
-                status.setQname(flowName);
-                status.setTemplatePath(templPath);
-                status.setTemplateDataModel((Map<String, Object>) p.getSecond());
-        
-                //Save the state
-                FlowUtils.saveState(sessionId, status, (NativeContinuation) pe.getContinuation(), globalScope);
-                
-                return status;
+                status = processPause(pe, flowName, sessionId, globalScope);
+
             } catch (Exception e){
+                terminateFlow(sessionId);
                 //TODO: what kind of exceptions can a rhino script throw?
                 logger.error(e.getMessage(), e);
                 throw new FlowCrashException("Error executing flow's code", e);
@@ -118,62 +110,97 @@ public class FlowService {
                 Context.exit();
             }
             
-            //TODO: fix exception handling
+            //TODO: review exception handling, enable polling if needed
         } catch (JsonProcessingException e) {
             throw new FlowCrashException(e.getMessage(), e);
         } catch (IOException ie) {
             throw new FlowCrashException(ie.getMessage(), ie);
-        } catch (TemplateProcessingException te) {
-            throw new FlowCrashException(te.getMessage(), te);
-        }
+        }  
         
-        //terminate/clean any existing flow associated to this session        
-        //enable polling if needed
-        return null;
+        return status;
         
     }
     
-    public void removeFlow(String flowId, String sessionId) {
-        //TODO
-        
+    public void terminateFlow(String sessionId) throws IOException {
+        logger.info("Terminating flow");
+        FlowUtils.terminateFlow(sessionId);
     }
     
-    public FlowStatus continueFlow(String flowId, String sessionId, Map<String, String[]> parameters,
+    public FlowStatus continueFlow(String flowName, String sessionId, Map<String, String[]> parameters,
             boolean afterExternalRedirect) throws FlowCrashException, FlowTimeoutException {
         
-        Context cx = Context.enter();
+        FlowStatus status = null;
         try {
-            Scriptable globalScope = initContext(cx);
-
-            FlowStatus fs = getFlowStatus(sessionId);
-            checkTimeExceeded(fs, false);
+            Context cx = Context.enter();
+            Scriptable globalScope = null;
             
-            Pair<Scriptable, NativeContinuation> pcont = FlowUtils.getContinuation(sessionId, globalScope);            
-            globalScope = pcont.getFirst();
-            cx.resumeContinuation(pcont.getSecond(), globalScope, FlowUtils.toJsonString(parameters));
+            try {
+                FlowStatus fs = getFlowStatus(sessionId);
+                ensureTimeNotExceeded(fs, false);
 
-        } catch (ContinuationPending pe) {
-            
-        } catch (FlowTimeoutException te) {
-            throw te;
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-            throw new FlowCrashException("Error executing flow's code", e);
-        } finally {
-            Context.exit();
+                Pair<Scriptable, NativeContinuation> pcont = FlowUtils.getContinuation(sessionId);//, globalScope        
+                globalScope = pcont.getFirst();
+                printScopeIds(globalScope);
+
+                logger.debug("Resuming flow");
+                Object result = cx.resumeContinuation(pcont.getSecond(), globalScope, 
+                        FlowUtils.toJsonString(parameters));
+
+                status = new FlowStatus();
+                status.setResult(FlowUtils.flowResultFrom(result));
+                terminateFlow(sessionId);
+
+            } catch (ContinuationPending pe) {
+                status = processPause(pe, flowName, sessionId, globalScope);
+                
+            } catch (FlowTimeoutException te) {
+                terminateFlow(sessionId);
+                throw te;
+            } catch (Exception e) {
+                terminateFlow(sessionId);
+                logger.error(e.getMessage(), e);
+                throw new FlowCrashException("Error executing flow's code", e);
+            } finally {
+                Context.exit();
+            }
+        } catch (IOException ie) {
+            throw new FlowCrashException(ie.getMessage(), ie);
         }
-
-        //Persist status to database
-        return new FlowStatus();
+        return status;
+        
     }
     
-    private void checkTimeExceeded(FlowStatus flstatus, boolean afterExternalRedirect)
+    private FlowStatus processPause(ContinuationPending pending, String flowName,
+            String sessionId, Scriptable globalScope) throws FlowCrashException, IOException {
+        
+        Pair<String, Object> p = (Pair<String, Object>) pending.getApplicationState();
+        String templPath = p.getFirst();
+
+        if (!templPath.contains("."))
+            throw new FlowCrashException("Expecting file extension for the template to render: " + templPath);
+
+        FlowStatus status = new FlowStatus();
+        status.setStartedAt(System.currentTimeMillis());
+        status.setQname(flowName);
+        status.setTemplatePath(templPath);
+        status.setTemplateDataModel((Map<String, Object>) p.getSecond());
+
+        printScopeIds(globalScope);        
+        //Save the state
+        FlowUtils.saveState(sessionId, status, (NativeContinuation) pending.getContinuation(), globalScope);
+
+        return status;
+        
+    }
+    
+    private void ensureTimeNotExceeded(FlowStatus flstatus, boolean afterExternalRedirect)
             throws FlowTimeoutException {
 
         int time = afterExternalRedirect ? engineConf.getReturnAfterRedirectTime()
                 : engineConf.getInterruptionTime();
         if (System.currentTimeMillis() - flstatus.getStartedAt() > 1000 * time) {
-            throw new FlowTimeoutException("This flow has run for more than " + time + " seconds");
+            throw new FlowTimeoutException("Your authentication attempt has run for more than "
+                    + time + " seconds", flstatus.getQname());
         }
 
     }
@@ -214,10 +241,14 @@ public class FlowService {
         ctx.setOptimizationLevel(-1);
         return ctx.initStandardObjects();
     }
+
+    private void printScopeIds(Scriptable scope) {
+        List<String> scopeIds = Stream.of(scope.getIds()).map(Object::toString).collect(Collectors.toList());
+        logger.trace("Global scope has {} ids: {}", scopeIds.size(), scopeIds);
+    }
     
     @PostConstruct
-    private void init() {
-        
+    private void init() {        
     }
     
 }

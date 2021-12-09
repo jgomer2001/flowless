@@ -2,44 +2,47 @@ package org.gluu.flowless.engine.misc;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import org.gluu.flowless.engine.model.EngineConfig;
 
+import org.gluu.flowless.engine.model.EngineConfig;
+import org.gluu.flowless.engine.model.FlowResult;
 import org.gluu.flowless.engine.model.FlowStatus;
 import org.gluu.util.Pair;
-import org.mozilla.javascript.Context;
-import org.mozilla.javascript.ContinuationPending;
 import org.mozilla.javascript.NativeContinuation;
 import org.mozilla.javascript.Scriptable;
-import org.mozilla.javascript.serialize.ScriptableInputStream;
-import org.mozilla.javascript.serialize.ScriptableOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Base64;
 
 public class FlowUtils {
 
     private static Logger LOG = LoggerFactory.getLogger(FlowUtils.class);
     private static ObjectMapper MAPPER = new ObjectMapper();
+
+    public static String encode(String name) {
+        return Base64.getUrlEncoder().encodeToString(name.getBytes(UTF_8));
+    }
     
-    // NOTE: do not alter this method's signature in order to return void
-    // The returned value is injected when the continuation is resumed
-    public static Object pauseFlow(String page, Object data) {
-        Context cx = Context.enter();
-        try {
-            ContinuationPending pending = cx.captureContinuation();
-            pending.setApplicationState(new Pair<>(page, data));
-            throw pending;
-        } finally {
-            Context.exit();
-        }
+    public static String decode(String encStr) throws IllegalArgumentException {
+        return new String(Base64.getUrlDecoder().decode(encStr), UTF_8);
+    }
+    
+    public static void terminateFlow(String sessionId) throws IOException {
+        Files.deleteIfExists(continuationPath(sessionId));
+        Files.deleteIfExists(flowStatusPath(sessionId));
     }
     
     public static void saveState(String sessionId, FlowStatus fst, NativeContinuation continuation,
@@ -47,7 +50,8 @@ public class FlowUtils {
         
         try (
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ScriptableOutputStream sos = new ScriptableOutputStream(baos, scope)) {
+                //ScriptableOutputStream sos = new ScriptableOutputStream(baos, scope);
+                ObjectOutputStream sos = new ObjectOutputStream(baos)) {
             
             sos.writeObject(scope);
             sos.writeObject(continuation);
@@ -60,6 +64,39 @@ public class FlowUtils {
         }
         
     }
+    
+    public static Pair<Scriptable, NativeContinuation> getContinuation(String sid /*, Scriptable scope*/)
+            throws IOException {
+
+        Path path = continuationPath(sid);
+        if (!Files.exists(path)) return null;
+        
+        LOG.debug("Restoring continuation data...");
+        byte[] bytes = Files.readAllBytes(path);
+        Pair<Scriptable, NativeContinuation> p = new Pair<>();
+        try (
+                ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+                //ScriptableInputStream sis = new ScriptableInputStream(bais, scope);
+                ObjectInputStream sis = new ObjectInputStream(bais)) {
+            
+            p.setFirst((Scriptable) sis.readObject());
+            p.setSecond((NativeContinuation) sis.readObject());
+        } catch (Exception e) {
+            LOG.error("An error occurred while deserializing the continuation");
+            throw new IOException(e);
+        }
+        return p;
+
+    } 
+    
+    /**
+     * It is guaranteed obj is a String, see utils.js#finish
+     * @param obj
+     * @return 
+     */
+    public static FlowResult flowResultFrom(Object obj) throws JsonProcessingException {        
+        return MAPPER.readValue(obj.toString(), FlowResult.class);
+    }
 
     /**
      * It is assumed that values in the map are String arrays with at least one element
@@ -68,6 +105,7 @@ public class FlowUtils {
      * @throws JsonProcessingException 
      */
     public static String toJsonString(Map<String, String[]> map) throws JsonProcessingException {
+        
         Map<String, Object> result = new HashMap<>();
         if (map != null) {
             for(String key : map.keySet()) {
@@ -100,28 +138,10 @@ public class FlowUtils {
             return null;
         }
     }
-    
-    public static Pair<Scriptable, NativeContinuation> getContinuation(String sid,
-            Scriptable scope) throws IOException {
 
-        Path path = continuationPath(sid);
-        if (!Files.exists(path)) return null;
-        
-        byte[] bytes = Files.readAllBytes(path);
-        Pair<Scriptable, NativeContinuation> p = new Pair<>();;
-        try (
-                ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-                ScriptableInputStream sis = new ScriptableInputStream(bais, scope)) {
-            
-            p.setFirst((Scriptable) sis.readObject());
-            p.setSecond((NativeContinuation) sis.readObject());
-        } catch (Exception e) {
-            LOG.error("An error occurred while deserializing the continuation");
-            throw new IOException(e);
-        }
-        return p;
-
-    } 
+    public static String fread(String path, String ...more) throws IOException{
+        return Files.readString(Paths.get(path, more), UTF_8);    
+    }
     
     private static Path continuationPath(String sid) {
         return Paths.get(EngineConfig.ROOT_DIR, "flows", sid + ".txt");

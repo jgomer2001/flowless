@@ -1,22 +1,25 @@
 package org.gluu.flowless.engine.page;
 
-import org.gluu.flowless.engine.servlet.RestartServlet;
-
 public class BasicTemplateModel {
 
     private String message;
-    private String restart = RestartServlet.PATH;
+    private String flowId;
 
     public BasicTemplateModel(String message) {
         this.message = message;
     }
-    
-    public String getRestart() {
-        return restart;
+
+    public BasicTemplateModel(String message, String flowId) {
+        this.message = message;
+        this.flowId = flowId;
     }
 
     public String getMessage() {
         return message;
+    }
+
+    public String getFlowId() {
+        return flowId;
     }
     
 }

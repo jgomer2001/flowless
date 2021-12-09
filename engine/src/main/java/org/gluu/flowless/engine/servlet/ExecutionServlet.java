@@ -1,8 +1,6 @@
 package org.gluu.flowless.engine.servlet;
 
 import java.io.IOException;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import java.util.Base64;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -10,22 +8,24 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response.Status;
 
-import org.gluu.flowless.engine.page.BasicTemplateModel;
-import org.gluu.flowless.engine.page.Page;
 import org.gluu.flowless.engine.exception.FlowCrashException;
 import org.gluu.flowless.engine.exception.FlowTimeoutException;
 import org.gluu.flowless.engine.exception.TemplateProcessingException;
+import org.gluu.flowless.engine.misc.FlowUtils;
 import org.gluu.flowless.engine.model.EngineConfig;
 import org.gluu.flowless.engine.model.ExternalRedirect;
 import org.gluu.flowless.engine.model.FlowResult;
 import org.gluu.flowless.engine.model.FlowStatus;
+import org.gluu.flowless.engine.page.BasicTemplateModel;
+import org.gluu.flowless.engine.page.Page;
 import org.gluu.flowless.engine.service.FlowService;
 import org.gluu.flowless.engine.service.SessionService;
 import org.gluu.flowless.engine.service.TemplatingService;
 import org.slf4j.Logger;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 @WebServlet(urlPatterns = "*" + ExecutionServlet.URL_SUFFIX)
 public class ExecutionServlet extends HttpServlet {
@@ -47,6 +47,9 @@ public class ExecutionServlet extends HttpServlet {
     
     @Inject
     private TemplatingService templatingService;
+    
+    @Inject
+    private Page page;
     
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response)
@@ -81,7 +84,9 @@ public class ExecutionServlet extends HttpServlet {
             String expectedUrl = getExpectedUrl(fstatus);
 
             if (path.equals(expectedUrl)) {
-                processTemplate(URL_PREFIX + fstatus.getTemplatePath(), fstatus.getTemplateDataModel(), response);
+                page.setTemplatePath(URL_PREFIX + fstatus.getTemplatePath());
+                page.setDataModel(fstatus.getTemplateDataModel());
+                sendPageContents(response);
             } else {
                 //This is an attempt to GET a page which is not the current page of this flow
                 sendPageMismatch(response, expectedUrl);
@@ -113,7 +118,7 @@ public class ExecutionServlet extends HttpServlet {
                     sendFinalRedirect(response, result);
                 }
             } catch (FlowTimeoutException te) {
-                sendFlowTimeout(response, te.getMessage());
+                sendFlowTimeout(response, te.getMessage(), te.getQname());
             } catch (FlowCrashException ce) {
                 sendFlowCrashed(response, ce.getMessage());
             }
@@ -159,7 +164,7 @@ public class ExecutionServlet extends HttpServlet {
         String flowName = null;
         try {
             String tmp = path.substring(URL_PREFIX.length(), path.length() - URL_SUFFIX.length());
-            flowName = new String(Base64.getUrlDecoder().decode(tmp), UTF_8);
+            flowName = FlowUtils.decode(tmp);
         } catch (IllegalArgumentException e) {
             logger.error(e.getMessage(), e);
             logger.warn("Unable to extract flow identifier in url path");
@@ -177,7 +182,7 @@ public class ExecutionServlet extends HttpServlet {
         String params = null;
         try {
             if (queryString != null) {
-                params = new String(Base64.getUrlDecoder().decode(queryString), UTF_8);
+                params = FlowUtils.decode(queryString);
             }
         } catch (IllegalArgumentException e) {
             logger.error(e.getMessage(), e);
@@ -202,46 +207,46 @@ public class ExecutionServlet extends HttpServlet {
     }
 
     private void sendFinalRedirect(HttpServletResponse response, FlowResult result) throws IOException {
-        
-        Page page = new Page(engineConf.getFinishedFlowPage());
-        page.setDataModel(result);
-        sendPageContents(response, page);
+
+        page.setTemplatePath(engineConf.getFinishedFlowPage());
+        page.setRawDataModel(result);
+        sendPageContents(response);
         
     }
 
-    private void sendFlowTimeout(HttpServletResponse response, String message) throws IOException {
+    private void sendFlowTimeout(HttpServletResponse response, String message, String qname) throws IOException {
 
-        Page page = new Page(engineConf.getInterruptionErrorPage());
-        page.setDataModel(new BasicTemplateModel(message));
-        sendPageContents(response, page);
+        page.setTemplatePath(engineConf.getInterruptionErrorPage());
+        page.setDataModel(new BasicTemplateModel(message, FlowUtils.encode(qname)));
+        sendPageContents(response);
 
     }
     
     private void sendFlowCrashed(HttpServletResponse response, String error) throws IOException {
 
-        Page page = new Page(engineConf .getCrashErrorPage());
-        page.setDataModel(new BasicTemplateModel(error));
-        sendPageContents(response, page);
+        page.setTemplatePath(engineConf.getCrashErrorPage());
+        page.setRawDataModel(new BasicTemplateModel(error));
+        sendPageContents(response);
         
     }
     
     private void sendPageMismatch(HttpServletResponse response, String url) throws IOException {
         
-        Page page = new Page(engineConf.getPageMismatchErrorPage());
+        page.setTemplatePath(engineConf.getPageMismatchErrorPage());
         page.setDataModel(new BasicTemplateModel(url));
-        sendPageContents(response, page);
+        sendPageContents(response);
 
     }
 
-    private void sendPageContents(HttpServletResponse response, Page page) throws IOException {
+    private void sendPageContents(HttpServletResponse response) throws IOException {
         processTemplate(page.getTemplatePath(), page.getDataModel(), response);        
     }
     
-    public void processTemplate(String path, Object dataModel, HttpServletResponse response)
+    private void processTemplate(String path, Object dataModel, HttpServletResponse response)
             throws IOException {
 
         try {
-            response.setContentType(MediaType.TEXT_HTML);
+            engineConf.getDefaultResponseHeaders().forEach((h, v) -> response.setHeader(h, v));
             templatingService.process(path, dataModel, response.getWriter(), false);
         } catch (TemplateProcessingException e) {
             response.sendError(Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage());
@@ -255,7 +260,7 @@ public class ExecutionServlet extends HttpServlet {
     }
 
     public static void main(String ...args) throws Exception {
-        byte[] bytes = Base64.getUrlEncoder().encode("test1".getBytes());
+        byte[] bytes = FlowUtils.encode("test1").getBytes(UTF_8);
         System.out.println(new String(bytes, UTF_8));
     }
     

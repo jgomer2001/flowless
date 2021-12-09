@@ -17,15 +17,19 @@ _basePath = ${.node.base.STRING}
     <#recurse>
 </#macro>
 
-<#macro assignment><@util_preassign node=.node /> ${.node.expression}</#macro>
+<#macro assignment><@util_preassign node=.node /> ${.node.expression}
+</#macro>
 
 <#macro rrf_call>
-    <#if .node.statusr_block?size gt 0><#visit .node.statusr_block></#if>
-    <#assign isvar = .node.object_expr?size = 0>
-    it = ${isvar?then(.node.variable!"", .node.object_expr!"")}
+    <#if .node.statusr_block?size gt 0><#visit .node.statusr_block></#if>    
+    <#if .node.variable?size = 0>
+        it = {}
+    <#else>
+        it = ${.node.variable}
+    </#if>
 
 <@util_preassign node=.node />
-RenderReplyFetch(_basePath, ${.node.STRING}, it)
+renderReplyFetch(_basePath, ${.node.STRING}, it)
 </#macro>
 
 <#macro action_call>
@@ -37,7 +41,7 @@ try {
     </#if>
     <@util_preassign node=.node />
 
-    ActionCall(<#visit .node.call>)
+    actionCall(<#visit .node.call>)
     <#if catch>
 } catch (e) {
      ${.node.preassign_catch.short_var} = e
@@ -47,7 +51,7 @@ try {
 
 <#macro flow_call>
     <@util_preassign node=.node />
-FlowCall(<@util_url_overrides node=.node.overrides/>, <#visit .node.call>)
+flowCall(<@util_url_overrides node=.node.overrides/>, <#visit .node.call>)
 </#macro>
 
 <#macro call>
@@ -56,16 +60,16 @@ FlowCall(<@util_url_overrides node=.node.overrides/>, <#visit .node.call>)
 </#macro>
 
 <#macro redirect>
-Redirect(${.node.STRING}<#if .node.UINT?size gt 0>, ${.node.UINT}</#if>)
+redirect(${.node.STRING}<#if .node.UINT?size gt 0>, ${.node.UINT}</#if>)
 </#macro>
 
 <#macro finish>
-<#if .node.object_expr?size = 0>
+<#if .node.variable?size = 0>
     it = { success: ${.node.BOOL} }
 <#else>
-    it = ${.node.object_expr}
+    it = ${.node.variable}
 </#if>
-return it
+return finish(it)
 </#macro>
 
 <#macro loop>
@@ -126,14 +130,14 @@ equals(${.node.simple_expr[0]}, ${.node.simple_expr[1]})
 </#macro>
 
 <#macro log>
-Log(<@util_argslist node=.node prefix="" />)
+log(<@util_argslist node=.node prefix="" />)
 </#macro>
 
 <#macro statusr_block>
     <#assign isuint = .node.statusr_allow.variable?size = 0>
     <#assign isequality = statusr_until.boolean_expr.NOT?size gt 0>
 
-AllowStatusRequest(${isuint?then(.node.statusr_allow.UINT!"", .node.statusr_allow.variable!"")},
+allowStatusRequest(${isuint?then(.node.statusr_allow.UINT!"", .node.statusr_allow.variable!"")},
     "${.node.statusr_until.boolean_expr.simple_expr[0]!""}", "${.node.statusr_until.boolean_expr.simple_expr[1]!""}",
     ${isequality?c}, [<#recurse .node.statusr_reply>])
 </#macro>

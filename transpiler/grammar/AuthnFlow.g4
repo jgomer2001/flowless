@@ -23,7 +23,7 @@ tokens { INDENT, DEDENT }
   }
 }
 
-NL: ('\r'? '\n' ' '*);
+NL: '\r'? '\n' [\t ]* ;
 
 /*
  * Parser Rules
@@ -38,7 +38,7 @@ header: FLOWSTART WS qname WS? INDENT base inputs? DEDENT NL* ;
 
 base: BASE WS STRING WS? NL;
  
-inputs: FLOWINPUTS (WS short_var)* WS? NL ;
+inputs: FLOWINPUTS (WS short_var)+ WS? NL ;
 
 short_var: ALPHANUM ;
 
@@ -57,7 +57,7 @@ overrides: INDENT OVERRIDE WS STRING (WS STRING)* WS? NL DEDENT ;
 
 action_call: (preassign | preassign_catch)? ACTIONCALL WS call NL ;
 
-rrf_call: preassign? RRFCALL WS STRING (WS variable | object_expr)? WS? (statusr_block | NL) ;
+rrf_call: preassign? RRFCALL WS STRING (WS variable)? WS? (statusr_block | NL) ;
 
 log: LOG argument+ WS? NL ;
 
@@ -81,7 +81,7 @@ keypair: ALPHANUM WS? ':' WS? expression ;
 
 redirect: REDIRECT WS STRING WS UINT? NL;
 
-finish: FINISH WS (BOOL | object_expr) WS? NL ;
+finish: FINISH WS (BOOL | variable) WS? NL ;
 
 choice: MATCH WS simple_expr WS TO WS? INDENT option+ DEDENT elseblock? ;
 
@@ -198,6 +198,6 @@ IDXEXPR: ALNUM '[' UINT ']' ;
 
 DOTIDXEXPR: ALNUM ('[' UINT ']')? ('.' ALNUM ('[' UINT ']')? )+ ;
 
-SPCOMMA: SPACES? COMMA SPACES? ;
+SPCOMMA: SPACES? NL* COMMA SPACES? NL* ;
 
 WS: SPACES ;	//Entails "spaces" (plural)
