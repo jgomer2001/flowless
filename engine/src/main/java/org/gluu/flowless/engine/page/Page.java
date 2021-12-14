@@ -2,11 +2,14 @@ package org.gluu.flowless.engine.page;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.HashMap;
 import java.util.Map;
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
+
+import org.gluu.flowless.engine.service.WebContext;
 
 @RequestScoped
 public class Page {
@@ -14,7 +17,7 @@ public class Page {
     private static final String WEB_CTX_KEY = "webCtx";
     
     @Inject
-    private RequestContext webContext;
+    private WebContext webContext;
     
     @Inject
     private ObjectMapper mapper;

@@ -32,7 +32,7 @@ public class LogUtils {
         int dummyArgs = 0;
         String sfirst;
         int nargs = rest.length - 1;
-        LOG.trace("{}",nargs);
+
         Object first = rest[0];
         if (first != null && first instanceof String) {
             Pair<LogLevel, String> p = getLogLevel(first.toString());
@@ -55,8 +55,7 @@ public class LogUtils {
         Arrays.fill(args, nargs, args.length, "");
         String result = String.format(sfirst, args);
         
-        LOG.trace(sfirst);
-        
+        //LOG.trace(sfirst); 
         if (level == null) {
             level = LogLevel.INFO;
         }

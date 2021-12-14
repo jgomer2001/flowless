@@ -10,31 +10,33 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
-
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
+import javax.annotation.PreDestroy;
+import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 
 import org.gluu.flowless.engine.exception.FlowCrashException;
 import org.gluu.flowless.engine.exception.FlowTimeoutException;
 import org.gluu.flowless.engine.misc.FlowUtils;
 import org.gluu.flowless.engine.model.EngineConfig;
 import org.gluu.flowless.engine.model.Flow;
+import org.gluu.flowless.engine.model.FlowResult;
 import org.gluu.flowless.engine.model.FlowStatus;
+import org.gluu.flowless.engine.model.ParentFlowData;
 import org.gluu.util.Pair;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.ContinuationPending;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.NativeContinuation;
+import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.Scriptable;
 import org.slf4j.Logger;
 
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-@ApplicationScoped
+@RequestScoped
 public class FlowService {
 
     private static final String FLOWS_DIR = "flows";
@@ -50,13 +52,20 @@ public class FlowService {
     
     @Inject
     private EngineConfig engineConf;
+    
+    @Inject
+    private HttpServletRequest request;
+    
+    private String sessionId;
+    private Context scriptCtx;
+    private Scriptable globalScope;
+    private ParentFlowData parentFlowData;
   
     /**
      * Obtains the status of the current flow (if any) for the current user
-     * @param sessionId Identifier of the user's browser session
      * @return 
      */
-    public FlowStatus getFlowStatus(String sessionId) throws IOException {
+    public FlowStatus getRunningFlowStatus() throws IOException {
         return FlowUtils.getFlowStatus(sessionId);
     }
     
@@ -64,8 +73,7 @@ public class FlowService {
         return Files.exists(getFlowMetadataPath(flowName));
     }
     
-    public FlowStatus startFlow(String flowName, String sessionId, String strParams)
-            throws FlowCrashException {
+    public FlowStatus startFlow(String flowName, String strParams) throws FlowCrashException {
         
         FlowStatus status = null;
         try {            
@@ -78,36 +86,33 @@ public class FlowService {
             String flowCodeFileName = flowName + SCRIPT_SUFFIX;
             String flowCode = FlowUtils.fread(EngineConfig.ROOT_DIR, FLOWS_DIR, flowCodeFileName);
 
-            Context cx = Context.enter();
-            Scriptable globalScope = null;
+            logger.info("Evaluating flow code");
             
             try {
-                logger.info("Evaluating flow code");
-                globalScope = initContext(cx);
-                cx.evaluateString(globalScope, baseCode, JS_UTIL, 1, null);
-                printScopeIds(globalScope);
+                globalScope = initContext(scriptCtx);
+                scriptCtx.evaluateString(globalScope, baseCode, JS_UTIL, 1, null);
+                FlowUtils.printScopeIds(globalScope);
                 
-                cx.evaluateString(globalScope, flowCode, flowCodeFileName, 1, null);
-                printScopeIds(globalScope);
+                scriptCtx.evaluateString(globalScope, flowCode, flowCodeFileName, 1, null);
+                FlowUtils.printScopeIds(globalScope);
 
                 logger.info("Executing function {}", funcName);
                 Function f = (Function) globalScope.get(funcName, globalScope);
-                Object result = cx.callFunctionWithContinuations(f, globalScope, params);
+                //It is guaranteed result is a String, see utils.js#finish
+                NativeObject result = (NativeObject) scriptCtx.callFunctionWithContinuations(f, globalScope, params);
                 
                 status = new FlowStatus();
-                status.setResult(FlowUtils.flowResultFrom(result));
-                terminateFlow(sessionId);
+                status.setResult(flowResultFrom(result));
+                terminateFlow();
                 
             } catch (ContinuationPending pe) {
-                status = processPause(pe, flowName, sessionId, globalScope);
+                status = processPause(pe, flowName);
 
             } catch (Exception e){
-                terminateFlow(sessionId);
+                terminateFlow();
                 //TODO: what kind of exceptions can a rhino script throw?
                 logger.error(e.getMessage(), e);
                 throw new FlowCrashException("Error executing flow's code", e);
-            } finally {
-                Context.exit();
             }
             
             //TODO: review exception handling, enable polling if needed
@@ -121,47 +126,45 @@ public class FlowService {
         
     }
     
-    public void terminateFlow(String sessionId) throws IOException {
+    public void terminateFlow() throws IOException {
         logger.info("Terminating flow");
         FlowUtils.terminateFlow(sessionId);
     }
     
-    public FlowStatus continueFlow(String flowName, String sessionId, Map<String, String[]> parameters,
+    public FlowStatus continueFlow(String flowName, Map<String, String[]> parameters,
             boolean afterExternalRedirect) throws FlowCrashException, FlowTimeoutException {
         
         FlowStatus status = null;
         try {
-            Context cx = Context.enter();
-            Scriptable globalScope = null;
             
             try {
-                FlowStatus fs = getFlowStatus(sessionId);
+                FlowStatus fs = getRunningFlowStatus();
                 ensureTimeNotExceeded(fs, false);
 
-                Pair<Scriptable, NativeContinuation> pcont = FlowUtils.getContinuation(sessionId);//, globalScope        
+                Pair<Scriptable, NativeContinuation> pcont = FlowUtils.getContinuation(sessionId);
                 globalScope = pcont.getFirst();
-                printScopeIds(globalScope);
+                FlowUtils.printScopeIds(globalScope);
 
                 logger.debug("Resuming flow");
-                Object result = cx.resumeContinuation(pcont.getSecond(), globalScope, 
-                        FlowUtils.toJsonString(parameters));
+                parentFlowData = fs.getParent();
+                //It is guaranteed result is a String, see utils.js#finish
+                NativeObject result = (NativeObject) scriptCtx.resumeContinuation(pcont.getSecond(), 
+                        globalScope, FlowUtils.toJsonString(parameters));
 
                 status = new FlowStatus();
-                status.setResult(FlowUtils.flowResultFrom(result));
-                terminateFlow(sessionId);
+                status.setResult(flowResultFrom(result));
+                terminateFlow();
 
             } catch (ContinuationPending pe) {
-                status = processPause(pe, flowName, sessionId, globalScope);
+                status = processPause(pe, flowName);
                 
             } catch (FlowTimeoutException te) {
-                terminateFlow(sessionId);
+                terminateFlow();
                 throw te;
             } catch (Exception e) {
-                terminateFlow(sessionId);
+                terminateFlow();
                 logger.error(e.getMessage(), e);
                 throw new FlowCrashException("Error executing flow's code", e);
-            } finally {
-                Context.exit();
             }
         } catch (IOException ie) {
             throw new FlowCrashException(ie.getMessage(), ie);
@@ -170,22 +173,57 @@ public class FlowService {
         
     }
     
-    private FlowStatus processPause(ContinuationPending pending, String flowName,
-            String sessionId, Scriptable globalScope) throws FlowCrashException, IOException {
+    // This is called in the middle of a cx.resumeContinuation invocation (see util.js#_flowCall)
+    public Function prepareSubflow(String subflowName, String parentBasepath, String[] pathOverrides)
+            throws IOException {
+        
+        Flow fl = getFlowObject(subflowName);
+        String funcName = fl.getId();
+
+        String flowCodeFileName = subflowName + SCRIPT_SUFFIX;
+        String flowCode = FlowUtils.fread(EngineConfig.ROOT_DIR, FLOWS_DIR, flowCodeFileName);
+
+        //strangely, scriptCtx is a bit messed here so initialization is required again...
+        initContext(scriptCtx);
+
+        scriptCtx.evaluateString(globalScope, flowCode, flowCodeFileName, 1, null);
+        FlowUtils.printScopeIds(globalScope);
+
+        logger.info("Appending function {} to scope", funcName);
+        Function f = (Function) globalScope.get(funcName, globalScope);
+        //The values set below are useful when saving the state, see method processPause
+        
+        ParentFlowData pfd = new ParentFlowData();        
+        pfd.setParentBasepath(parentBasepath);
+        pfd.setPathOverrides(pathOverrides);
+        parentFlowData = pfd;
+
+        logger.info("Evaluating subflow code");
+        return f;
+        
+    }
+    
+    private FlowStatus processPause(ContinuationPending pending, String flowName) throws
+            FlowCrashException, IOException {
         
         Pair<String, Object> p = (Pair<String, Object>) pending.getApplicationState();
         String templPath = p.getFirst();
 
         if (!templPath.contains("."))
-            throw new FlowCrashException("Expecting file extension for the template to render: " + templPath);
+            throw new FlowCrashException(
+                    "Expecting file extension for the template to render: " + templPath);
 
-        FlowStatus status = new FlowStatus();
-        status.setStartedAt(System.currentTimeMillis());
-        status.setQname(flowName);
-        status.setTemplatePath(templPath);
+        FlowStatus status = getRunningFlowStatus();
+        if (status == null) {
+            status = new FlowStatus();
+            status.setQname(flowName);
+            status.setStartedAt(System.currentTimeMillis());
+        }
+        
+        status.setParent(parentFlowData);
+        status.setTemplatePath(computeTemplatePath(templPath, parentFlowData));
         status.setTemplateDataModel((Map<String, Object>) p.getSecond());
-
-        printScopeIds(globalScope);        
+        
         //Save the state
         FlowUtils.saveState(sessionId, status, (NativeContinuation) pending.getContinuation(), globalScope);
 
@@ -205,8 +243,11 @@ public class FlowService {
 
     }
     
-    private Flow getFlowObject(String flowName) throws IOException {        
-        return mapper.readValue(getFlowMetadataPath(flowName).toFile(), Flow.class);
+    private String computeTemplatePath(String path, ParentFlowData pfd) {
+        String[] overrides = Optional.ofNullable(pfd).map(ParentFlowData::getPathOverrides).orElse(null);
+        if (overrides != null && Stream.of(overrides).anyMatch(path::equals))
+            return pfd.getParentBasepath() + "/" + path;
+        return path;
     }
     
     private Object[] getFlowParams(List<String> inputNames, String strParams) throws JsonProcessingException {
@@ -232,6 +273,18 @@ public class FlowService {
 
     }
 
+    /**
+     * @param result
+     * @return 
+     */
+    public FlowResult flowResultFrom(NativeObject result) throws JsonProcessingException {        
+        return mapper.convertValue(result, FlowResult.class);
+    }
+    
+    private Flow getFlowObject(String flowName) throws IOException {
+        return mapper.readValue(getFlowMetadataPath(flowName).toFile(), Flow.class);
+    }
+
     private Path getFlowMetadataPath(String flowName) {
         return Paths.get(EngineConfig.ROOT_DIR, FLOWS_DIR, flowName + METADATA_SUFFIX);
     }
@@ -241,14 +294,16 @@ public class FlowService {
         ctx.setOptimizationLevel(-1);
         return ctx.initStandardObjects();
     }
-
-    private void printScopeIds(Scriptable scope) {
-        List<String> scopeIds = Stream.of(scope.getIds()).map(Object::toString).collect(Collectors.toList());
-        logger.trace("Global scope has {} ids: {}", scopeIds.size(), scopeIds);
-    }
     
     @PostConstruct
-    private void init() {        
+    private void init() {
+        sessionId = request.getSession().getId();
+        scriptCtx = Context.enter();
     }
-    
+
+    @PreDestroy
+    private void finish() {
+        Context.exit();
+    }
+
 }

@@ -1,7 +1,6 @@
 package org.gluu.flowless.engine.servlet;
 
 import java.io.IOException;
-import java.util.Base64;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -10,12 +9,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response;
 
+import org.gluu.flowless.engine.misc.FlowUtils;
 import org.gluu.flowless.engine.model.FlowStatus;
 import org.gluu.flowless.engine.service.FlowService;
-import org.gluu.flowless.engine.service.SessionService;
 import org.slf4j.Logger;
-
-import org.gluu.flowless.engine.misc.FlowUtils;
 
 @WebServlet(urlPatterns = RestartServlet.PATH)
 public class RestartServlet extends HttpServlet {
@@ -29,9 +26,6 @@ public class RestartServlet extends HttpServlet {
     
     @Inject
     private FlowService flowService;
-    
-    @Inject
-    private SessionService sessionService;
 
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -41,11 +35,10 @@ public class RestartServlet extends HttpServlet {
         String encQname = request.getParameter(FLOW_PARAM);
         
         if (encQname == null) {
-            String sid = sessionService.getId();
-            FlowStatus fstatus = flowService.getFlowStatus(sid);
+            FlowStatus fstatus = flowService.getRunningFlowStatus();
 
             if (fstatus != null) {
-                flowService.terminateFlow(sid);
+                flowService.terminateFlow();
                 encQname = FlowUtils.encode(fstatus.getQname());
             }
         }

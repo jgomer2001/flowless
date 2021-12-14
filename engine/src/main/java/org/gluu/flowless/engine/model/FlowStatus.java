@@ -8,11 +8,12 @@ import java.util.Map;
 public class FlowStatus {
     
     private String qname;
-    private String parentFlowId;
     private String templatePath;
     private long startedAt;
     private Map<String, Object> templateDataModel;
+    private ParentFlowData parent;
     private ExternalRedirect externalRedirect;
+    
     private FlowResult result;
 
     public ExternalRedirect getExternalRedirect() {
@@ -47,14 +48,6 @@ public class FlowStatus {
         this.startedAt = startedAt;
     }
 
-    public String getParentFlowId() {
-        return parentFlowId;
-    }
-
-    public void setParentFlowId(String parentFlowId) {
-        this.parentFlowId = parentFlowId;
-    }
-
     public String getQname() {
         return qname;
     }
@@ -69,6 +62,14 @@ public class FlowStatus {
 
     public void setTemplatePath(String templatePath) {
         this.templatePath = templatePath;
+    }
+
+    public ParentFlowData getParent() {
+        return parent;
+    }
+
+    public void setParent(ParentFlowData parent) {
+        this.parent = parent;
     }
 
 }

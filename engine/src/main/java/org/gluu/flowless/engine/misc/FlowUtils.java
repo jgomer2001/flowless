@@ -8,16 +8,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.gluu.flowless.engine.model.EngineConfig;
-import org.gluu.flowless.engine.model.FlowResult;
 import org.gluu.flowless.engine.model.FlowStatus;
 import org.gluu.util.Pair;
 import org.mozilla.javascript.NativeContinuation;
@@ -25,12 +27,12 @@ import org.mozilla.javascript.Scriptable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Base64;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public class FlowUtils {
 
-    private static Logger LOG = LoggerFactory.getLogger(FlowUtils.class);
-    private static ObjectMapper MAPPER = new ObjectMapper();
+    private static final Logger LOG = LoggerFactory.getLogger(FlowUtils.class);
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static String encode(String name) {
         return Base64.getUrlEncoder().encodeToString(name.getBytes(UTF_8));
@@ -65,7 +67,7 @@ public class FlowUtils {
         
     }
     
-    public static Pair<Scriptable, NativeContinuation> getContinuation(String sid /*, Scriptable scope*/)
+    public static Pair<Scriptable, NativeContinuation> getContinuation(String sid)
             throws IOException {
 
         Path path = continuationPath(sid);
@@ -87,15 +89,6 @@ public class FlowUtils {
         }
         return p;
 
-    } 
-    
-    /**
-     * It is guaranteed obj is a String, see utils.js#finish
-     * @param obj
-     * @return 
-     */
-    public static FlowResult flowResultFrom(Object obj) throws JsonProcessingException {        
-        return MAPPER.readValue(obj.toString(), FlowResult.class);
     }
 
     /**
@@ -108,6 +101,7 @@ public class FlowUtils {
         
         Map<String, Object> result = new HashMap<>();
         if (map != null) {
+            
             for(String key : map.keySet()) {
                 String[] list = map.get(key);
                 result.put(key, list.length == 1 ? list[0] : Arrays.asList(list));
@@ -131,12 +125,16 @@ public class FlowUtils {
     }
     
     public static FlowStatus getFlowStatus(String sid) throws IOException {
+        
         Path path = flowStatusPath(sid);
-        if (Files.exists(path)) {
-            return MAPPER.readValue(path.toFile(), FlowStatus.class);
-        } else {
-            return null;
-        }
+        return Files.exists(path) ?
+                MAPPER.readValue(path.toFile(), FlowStatus.class) : null;
+
+    }
+
+    public static void printScopeIds(Scriptable scope) {
+        List<String> scopeIds = Stream.of(scope.getIds()).map(Object::toString).collect(Collectors.toList());
+        LOG.trace("Global scope has {} ids: {}", scopeIds.size(), scopeIds);
     }
 
     public static String fread(String path, String ...more) throws IOException{
@@ -146,6 +144,7 @@ public class FlowUtils {
     private static Path continuationPath(String sid) {
         return Paths.get(EngineConfig.ROOT_DIR, "flows", sid + ".txt");
     }
+
     private static Path flowStatusPath(String sid) {
         return Paths.get(EngineConfig.ROOT_DIR, "flows", sid + ".st.txt");
     }

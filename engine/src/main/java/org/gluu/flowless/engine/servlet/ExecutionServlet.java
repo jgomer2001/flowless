@@ -21,7 +21,7 @@ import org.gluu.flowless.engine.model.FlowStatus;
 import org.gluu.flowless.engine.page.BasicTemplateModel;
 import org.gluu.flowless.engine.page.Page;
 import org.gluu.flowless.engine.service.FlowService;
-import org.gluu.flowless.engine.service.SessionService;
+import org.gluu.flowless.engine.service.WebContext;
 import org.gluu.flowless.engine.service.TemplatingService;
 import org.slf4j.Logger;
 
@@ -43,7 +43,7 @@ public class ExecutionServlet extends HttpServlet {
     private FlowService flowService;
     
     @Inject
-    private SessionService sessionService;
+    private WebContext webCtx;
     
     @Inject
     private TemplatingService templatingService;
@@ -55,24 +55,24 @@ public class ExecutionServlet extends HttpServlet {
     public void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String sid = sessionService.getId();
-        FlowStatus fstatus = flowService.getFlowStatus(sid);
-        String path = request.getServletPath();
+        FlowStatus fstatus = flowService.getRunningFlowStatus();
+        String path = webCtx.getRelativePath();
         
         if (fstatus == null) {
             String flQname = flowQnameInRequest(path);
-            logger.info("Attempting to trigger flow {}", flQname);
             
             if (flQname == null) {
                 response.setStatus(Status.NOT_FOUND.getStatusCode());
             } else {
+                logger.info("Attempting to trigger flow {}", flQname);
+                
                 try {
                     String strParams = flowParamsAsString(request.getQueryString());
-                    fstatus = flowService.startFlow(flQname, sid, strParams);
+                    fstatus = flowService.startFlow(flQname, strParams);
                     FlowResult result = fstatus.getResult();
                     
                     if (result == null) {
-                        sendRedirect(response, request.getContextPath(), fstatus);
+                        sendRedirect(response, webCtx.getContextPath(), fstatus);
                     } else {
                         sendFinalRedirect(response, result);
                     }
@@ -99,21 +99,19 @@ public class ExecutionServlet extends HttpServlet {
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         
-        String sid = sessionService.getId();
-        FlowStatus fstatus = flowService.getFlowStatus(sid);        
+        FlowStatus fstatus = flowService.getRunningFlowStatus();        
         if (fstatus == null) return;
 
-        String path = request.getServletPath();
+        String path = webCtx.getRelativePath();
         String expectedUrl = getExpectedUrl(fstatus);
 
         if (path.equals(expectedUrl)) {
             try {
-                fstatus = flowService.continueFlow(fstatus.getQname(), sid,
-                        request.getParameterMap(), false);
+                fstatus = flowService.continueFlow(fstatus.getQname(), request.getParameterMap(), false);
                 FlowResult result = fstatus.getResult();
 
                 if (result == null) {
-                    sendRedirect(response, request.getContextPath(), fstatus);
+                    sendRedirect(response, webCtx.getContextPath(), fstatus);
                 } else {                    
                     sendFinalRedirect(response, result);
                 }
@@ -134,7 +132,7 @@ public class ExecutionServlet extends HttpServlet {
             throws ServletException, IOException {
         
         String method = request.getMethod();         
-        String path = request.getServletPath();
+        String path = webCtx.getRelativePath();
         boolean match = path.startsWith(URL_PREFIX);
 
         if (match) {
@@ -155,7 +153,7 @@ public class ExecutionServlet extends HttpServlet {
     }
 
     /**
-     * Extracts the flow identifier in a url path if such flow exists
+     * Extracts the flow identifier in the url path if such flow exists
      * @param path A string that starts with URL_PREFIX and ends with URL_SUFFIX
      * @return 
      */
@@ -166,8 +164,8 @@ public class ExecutionServlet extends HttpServlet {
             String tmp = path.substring(URL_PREFIX.length(), path.length() - URL_SUFFIX.length());
             flowName = FlowUtils.decode(tmp);
         } catch (IllegalArgumentException e) {
-            logger.error(e.getMessage(), e);
             logger.warn("Unable to extract flow identifier in url path");
+            logger.error(e.getMessage(), e);
         }
         
         if (flowName != null) {
@@ -260,7 +258,7 @@ public class ExecutionServlet extends HttpServlet {
     }
 
     public static void main(String ...args) throws Exception {
-        byte[] bytes = FlowUtils.encode("test1").getBytes(UTF_8);
+        byte[] bytes = FlowUtils.encode("org.gluu.flow1").getBytes(UTF_8);
         System.out.println(new String(bytes, UTF_8));
     }
     

@@ -1,4 +1,4 @@
-package org.gluu.flowless.engine.page;
+package org.gluu.flowless.engine.service;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.RequestScoped;
@@ -8,12 +8,14 @@ import javax.servlet.http.HttpServletRequest;
 import org.gluu.flowless.engine.servlet.RestartServlet;
 
 @RequestScoped
-public class RequestContext {
+public class WebContext {
     
     @Inject
     private HttpServletRequest request;
     
     private String contextPath;
+    private String relativePath;
+    private String rpFlowInitiatorUrl;
 
     public String getContextPath() {
         return contextPath;
@@ -22,10 +24,23 @@ public class RequestContext {
     public String getRestartUrl() {
         return contextPath + RestartServlet.PATH;
     }
+
+    public String getRelativePath() {
+        return relativePath;
+    }
+
+    public String getRpFlowInitiatorUrl() {
+        return rpFlowInitiatorUrl;
+    }
+
+    public void setRpFlowInitiatorUrl(String rpFlowInitiatorUrl) {
+        this.rpFlowInitiatorUrl = rpFlowInitiatorUrl;
+    }
     
     @PostConstruct
     private void init() {
         contextPath = request.getContextPath();
+        relativePath = request.getServletPath();
     }
     
 }

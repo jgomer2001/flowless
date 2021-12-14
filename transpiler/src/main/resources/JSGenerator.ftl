@@ -1,4 +1,9 @@
 <#ftl output_format="JavaScript">
+<#--
+- This templates generates valid JS code
+- Functions called here are implemented in util.js
+- An initial underscore in variables and function names prevent flow writers to use variables with the same names in their DSL code
+-->
 
 //Generated at ${.now?iso_utc}
 function ${flow.@id}<#recurse flow>
@@ -23,13 +28,13 @@ _basePath = ${.node.base.STRING}
 <#macro rrf_call>
     <#if .node.statusr_block?size gt 0><#visit .node.statusr_block></#if>    
     <#if .node.variable?size = 0>
-        it = {}
+        _it = {}
     <#else>
-        it = ${.node.variable}
+        _it = ${.node.variable}
     </#if>
 
 <@util_preassign node=.node />
-renderReplyFetch(_basePath, ${.node.STRING}, it)
+_renderReplyFetch(_basePath, ${.node.STRING}, _it)
 </#macro>
 
 <#macro action_call>
@@ -41,7 +46,7 @@ try {
     </#if>
     <@util_preassign node=.node />
 
-    actionCall(<#visit .node.call>)
+    _actionCall(<#visit .node.call>)
     <#if catch>
 } catch (e) {
      ${.node.preassign_catch.short_var} = e
@@ -51,7 +56,7 @@ try {
 
 <#macro flow_call>
     <@util_preassign node=.node />
-flowCall(<@util_url_overrides node=.node.overrides/>, <#visit .node.call>)
+_flowCall(_basePath, <@util_url_overrides node=.node.overrides/>, <#visit .node.call>)
 </#macro>
 
 <#macro call>
@@ -60,26 +65,26 @@ flowCall(<@util_url_overrides node=.node.overrides/>, <#visit .node.call>)
 </#macro>
 
 <#macro redirect>
-redirect(${.node.STRING}<#if .node.UINT?size gt 0>, ${.node.UINT}</#if>)
+_redirect(${.node.STRING}<#if .node.UINT?size gt 0>, ${.node.UINT}</#if>)
 </#macro>
 
 <#macro finish>
 <#if .node.variable?size = 0>
-    it = { success: ${.node.BOOL} }
+    _it = { success: ${.node.BOOL} }
 <#else>
-    it = ${.node.variable}
+    _it = ${.node.variable}
 </#if>
-return finish(it)
+return _it
 </#macro>
 
 <#macro loop>
     <#if .node.variable?size = 0>
-it = ${.node.UINT}
+_it = ${.node.UINT}
     <#else>
-it = ${.node.variable}
+_it = ${.node.variable}
     </#if>
 
-for (let count = 0; count < it; count++) {
+for (let count = 0; count < _it; count++) {
 
     <#list .node.statement as st>
         <#recurse st>
@@ -106,7 +111,7 @@ if (<#recurse .node.caseof>) break
 <#macro choice>
     <#list .node.option as case>
         <#if case?index gt 0>else </#if>
-if (equals(${.node.simple_expr },${case.simple_expr})) {
+if (_equals(${.node.simple_expr }, ${case.simple_expr})) {
         <#list case.statement as st>
             <#recurse st>
         </#list>
@@ -117,7 +122,7 @@ if (equals(${.node.simple_expr },${case.simple_expr})) {
 
 <#macro boolean_expr>
     <#if .node.NOT?size gt 0>!</#if>
-equals(${.node.simple_expr[0]}, ${.node.simple_expr[1]})
+_equals(${.node.simple_expr[0]}, ${.node.simple_expr[1]})
 </#macro>
 
 <#macro boolean_op_expr>
@@ -130,14 +135,14 @@ equals(${.node.simple_expr[0]}, ${.node.simple_expr[1]})
 </#macro>
 
 <#macro log>
-log(<@util_argslist node=.node prefix="" />)
+_log(<@util_argslist node=.node prefix="" />)
 </#macro>
 
 <#macro statusr_block>
     <#assign isuint = .node.statusr_allow.variable?size = 0>
     <#assign isequality = statusr_until.boolean_expr.NOT?size gt 0>
 
-allowStatusRequest(${isuint?then(.node.statusr_allow.UINT!"", .node.statusr_allow.variable!"")},
+_allowStatusRequest(${isuint?then(.node.statusr_allow.UINT!"", .node.statusr_allow.variable!"")},
     "${.node.statusr_until.boolean_expr.simple_expr[0]!""}", "${.node.statusr_until.boolean_expr.simple_expr[1]!""}",
     ${isequality?c}, [<#recurse .node.statusr_reply>])
 </#macro>

@@ -8,7 +8,7 @@ public class FlowResult {
     private boolean success;
     private String error;
     private Map<String, Object> data;
-    private FlowStats _stats;
+    private FlowStats stats;
 
     public boolean isAborted() {
         return aborted;
@@ -43,11 +43,11 @@ public class FlowResult {
     }
 
     public FlowStats getStats() {
-        return _stats;
+        return stats;
     }
 
-    public void setStats(FlowStats _stats) {
-        this._stats = _stats;
+    public void setStats(FlowStats stats) {
+        this.stats = stats;
     }
     
 }

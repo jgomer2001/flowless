@@ -3,23 +3,23 @@ package org.gluu.flowless.engine.page;
 public class BasicTemplateModel {
 
     private String message;
-    private String flowId;
+    private String flowName;
 
     public BasicTemplateModel(String message) {
         this.message = message;
     }
 
-    public BasicTemplateModel(String message, String flowId) {
+    public BasicTemplateModel(String message, String flowName) {
         this.message = message;
-        this.flowId = flowId;
+        this.flowName = flowName;
     }
 
     public String getMessage() {
         return message;
     }
 
-    public String getFlowId() {
-        return flowId;
+    public String getFlowName() {
+        return flowName;
     }
     
 }

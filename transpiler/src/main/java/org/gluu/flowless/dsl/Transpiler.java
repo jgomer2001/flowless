@@ -128,6 +128,9 @@ public class Transpiler {
             
             if (syntaxException != null) {
                 throw syntaxException;
+            } else if (!lexer._hitEOF) {
+                throw new SyntaxException("Unable to process the input code thoroughly",
+                        lexer.getText(), lexer.getLine(), lexer.getCharPositionInLine());                
             }
 
             logger.debug("Traversing parse tree");
@@ -233,10 +236,10 @@ public class Transpiler {
 
     public static void main(String... args) throws Exception {
         
-        Transpiler tr = new Transpiler("main_test1", "test1"/*org.gluu.Main"*/, null);
+        Transpiler tr = new Transpiler("main_flow2", "org.gluu.flow2"/*org.gluu.Main"*/, null);
         String dslCode = new String(Files.readAllBytes(Paths.get(args[0])), UTF_8);
         SaplingDocument doc = tr.asXML(dslCode);
-        System.out.println(tr.getInputs(doc));
+        //System.out.println(tr.getInputs(doc));
         System.out.println("\n" + tr.generateJS(doc));
 
         //tr.qTest(args[0]+".xml");
