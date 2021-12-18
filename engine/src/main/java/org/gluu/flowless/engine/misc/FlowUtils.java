@@ -119,7 +119,7 @@ public class FlowUtils {
         LOG.info("{} bytes written", data.length);
     }
     
-    private static void persistFlowStatus(String sid, FlowStatus fst) throws IOException {
+    public static void persistFlowStatus(String sid, FlowStatus fst) throws IOException {
         //TODO: use gluu persistence here. See if "working  params" are encoded somehow
         MAPPER.writeValue(flowStatusPath(sid).toFile(), fst);
     }

@@ -304,13 +304,13 @@ public class AuthnFlowBaseListener implements AuthnFlowListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterRedirect(AuthnFlowParser.RedirectContext ctx) { }
+	@Override public void enterRfac(AuthnFlowParser.RfacContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitRedirect(AuthnFlowParser.RedirectContext ctx) { }
+	@Override public void exitRfac(AuthnFlowParser.RfacContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

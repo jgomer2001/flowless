@@ -9,13 +9,10 @@ import javax.ws.rs.core.MediaType;
 import org.gluu.util.Pair;
 
 public class EngineConfig {
-/*
-    cookie used to correlate session
-    */
+
     public static final String ROOT_DIR = "/home/jgomer/Downloads/jetty/jetty-base/at";
     
     private int interruptionTime = 90;
-    private int returnAfterRedirectTime = 45;
     
     private String pageMismatchErrorPage = "mismatch.ftl";
     private String interruptionErrorPage = "timeout.ftl";  
@@ -51,14 +48,6 @@ public class EngineConfig {
 
     public void setCrashErrorPage(String crashErrorPage) {
         this.crashErrorPage = crashErrorPage;
-    }
-
-    public int getReturnAfterRedirectTime() {
-        return returnAfterRedirectTime;
-    }
-
-    public void setReturnAfterRedirectTime(int returnAfterRedirectTime) {
-        this.returnAfterRedirectTime = returnAfterRedirectTime;
     }
 
     public String getPageMismatchErrorPage() {

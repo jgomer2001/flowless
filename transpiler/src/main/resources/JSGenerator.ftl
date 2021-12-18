@@ -15,7 +15,7 @@ function ${flow.@id}<#recurse flow>
     ${.node.inputs.short_var?join(", ")}
 </#if>
 ) {
-_basePath = ${.node.base.STRING}
+let _basePath = ${.node.base.STRING}
 </#macro>
 
 <#macro statement>
@@ -26,6 +26,8 @@ _basePath = ${.node.base.STRING}
 </#macro>
 
 <#macro rrf_call>
+    <#assign hasbool = .node.BOOL?size gt 0>
+    
     <#if .node.statusr_block?size gt 0><#visit .node.statusr_block></#if>    
     <#if .node.variable?size = 0>
         _it = {}
@@ -34,7 +36,7 @@ _basePath = ${.node.base.STRING}
     </#if>
 
 <@util_preassign node=.node />
-_renderReplyFetch(_basePath, ${.node.STRING}, _it)
+_renderReplyFetch(_basePath, ${.node.STRING}, ${hasbool?then(.node.BOOL, "false")}, _it)
 </#macro>
 
 <#macro action_call>
@@ -64,8 +66,9 @@ _flowCall(_basePath, <@util_url_overrides node=.node.overrides/>, <#visit .node.
 <@util_argslist node=.node prefix=", " />
 </#macro>
 
-<#macro redirect>
-_redirect(${.node.STRING}<#if .node.UINT?size gt 0>, ${.node.UINT}</#if>)
+<#macro rfac>
+    <@util_preassign node=.node />
+_redirectFetchAtCallback(${.node.STRING})
 </#macro>
 
 <#macro finish>

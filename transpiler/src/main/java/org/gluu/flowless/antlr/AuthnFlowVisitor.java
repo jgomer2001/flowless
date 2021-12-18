@@ -155,11 +155,11 @@ public interface AuthnFlowVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitKeypair(AuthnFlowParser.KeypairContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AuthnFlowParser#redirect}.
+	 * Visit a parse tree produced by {@link AuthnFlowParser#rfac}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitRedirect(AuthnFlowParser.RedirectContext ctx);
+	T visitRfac(AuthnFlowParser.RfacContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#finish}.
 	 * @param ctx the parse tree

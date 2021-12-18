@@ -248,15 +248,15 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 */
 	void exitKeypair(AuthnFlowParser.KeypairContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link AuthnFlowParser#redirect}.
+	 * Enter a parse tree produced by {@link AuthnFlowParser#rfac}.
 	 * @param ctx the parse tree
 	 */
-	void enterRedirect(AuthnFlowParser.RedirectContext ctx);
+	void enterRfac(AuthnFlowParser.RfacContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link AuthnFlowParser#redirect}.
+	 * Exit a parse tree produced by {@link AuthnFlowParser#rfac}.
 	 * @param ctx the parse tree
 	 */
-	void exitRedirect(AuthnFlowParser.RedirectContext ctx);
+	void exitRfac(AuthnFlowParser.RfacContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#finish}.
 	 * @param ctx the parse tree

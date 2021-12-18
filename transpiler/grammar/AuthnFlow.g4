@@ -42,7 +42,7 @@ inputs: FLOWINPUTS (WS short_var)+ WS? NL ;
 
 short_var: ALPHANUM ;
 
-statement: (flow_call | action_call | rrf_call | assignment | log | redirect | finish | ifelse | choice | loop) ;
+statement: (flow_call | action_call | rrf_call | assignment | log | rfac | finish | ifelse | choice | loop) ;
 
 preassign: variable WS? EQ WS? ;
 
@@ -57,7 +57,7 @@ overrides: INDENT OVERRIDE WS STRING (WS STRING)* WS? NL DEDENT ;
 
 action_call: (preassign | preassign_catch)? ACTIONCALL WS call NL ;
 
-rrf_call: preassign? RRFCALL WS STRING (WS variable)? WS? (statusr_block | NL) ;
+rrf_call: preassign? RRFCALL WS STRING (WS variable)? (WS BOOL)? WS? (statusr_block | NL) ;
 
 log: LOG argument+ WS? NL ;
 
@@ -79,7 +79,7 @@ assignment: preassign expression NL ;
 
 keypair: ALPHANUM WS? ':' WS? expression ;
 
-redirect: REDIRECT WS STRING WS UINT? NL;
+rfac: preassign? RFAC WS STRING NL;
 
 finish: FINISH WS (BOOL | variable) WS? NL ;
 
@@ -157,7 +157,7 @@ QUIT: 'Quit' ;
 
 FINISH: 'Finish' ;
 
-REDIRECT: 'Redirect' ;
+RFAC: 'RFAC' ;
 
 IS: 'is' ;
 

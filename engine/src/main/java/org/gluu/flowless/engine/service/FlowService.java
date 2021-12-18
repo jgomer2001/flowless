@@ -18,6 +18,9 @@ import javax.annotation.PreDestroy;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+import org.gluu.flowless.engine.continuation.PendingException;
+import org.gluu.flowless.engine.continuation.PendingRedirectException;
+import org.gluu.flowless.engine.continuation.PendingRenderException;
 
 import org.gluu.flowless.engine.exception.FlowCrashException;
 import org.gluu.flowless.engine.exception.FlowTimeoutException;
@@ -98,7 +101,6 @@ public class FlowService {
 
                 logger.info("Executing function {}", funcName);
                 Function f = (Function) globalScope.get(funcName, globalScope);
-                //It is guaranteed result is a String, see utils.js#finish
                 NativeObject result = (NativeObject) scriptCtx.callFunctionWithContinuations(f, globalScope, params);
                 
                 status = new FlowStatus();
@@ -106,7 +108,7 @@ public class FlowService {
                 terminateFlow();
                 
             } catch (ContinuationPending pe) {
-                status = processPause(pe, flowName);
+                status = processPause(pe, null, flowName);
 
             } catch (Exception e){
                 terminateFlow();
@@ -131,23 +133,26 @@ public class FlowService {
         FlowUtils.terminateFlow(sessionId);
     }
     
-    public FlowStatus continueFlow(String flowName, Map<String, String[]> parameters,
-            boolean afterExternalRedirect) throws FlowCrashException, FlowTimeoutException {
+    public FlowStatus continueFlow(FlowStatus currentFlowSt, Map<String, String[]> parameters,
+            boolean callbackResume) throws FlowCrashException, FlowTimeoutException {
         
         FlowStatus status = null;
-        try {
+        try {            
+            if (callbackResume) {
+                //disable usage of callback endpoint
+                currentFlowSt.setAllowCallbackResume(false);
+                FlowUtils.persistFlowStatus(sessionId, currentFlowSt);
+            }
             
             try {
-                FlowStatus fs = getRunningFlowStatus();
-                ensureTimeNotExceeded(fs, false);
+                ensureTimeNotExceeded(currentFlowSt);
 
                 Pair<Scriptable, NativeContinuation> pcont = FlowUtils.getContinuation(sessionId);
                 globalScope = pcont.getFirst();
                 FlowUtils.printScopeIds(globalScope);
 
                 logger.debug("Resuming flow");
-                parentFlowData = fs.getParent();
-                //It is guaranteed result is a String, see utils.js#finish
+                parentFlowData = currentFlowSt.getParentsData().peekLast();
                 NativeObject result = (NativeObject) scriptCtx.resumeContinuation(pcont.getSecond(), 
                         globalScope, FlowUtils.toJsonString(parameters));
 
@@ -156,7 +161,7 @@ public class FlowService {
                 terminateFlow();
 
             } catch (ContinuationPending pe) {
-                status = processPause(pe, flowName);
+                status = processPause(pe, currentFlowSt, null);
                 
             } catch (FlowTimeoutException te) {
                 terminateFlow();
@@ -183,7 +188,7 @@ public class FlowService {
         String flowCodeFileName = subflowName + SCRIPT_SUFFIX;
         String flowCode = FlowUtils.fread(EngineConfig.ROOT_DIR, FLOWS_DIR, flowCodeFileName);
 
-        //strangely, scriptCtx is a bit messed here so initialization is required again...
+        //strangely, scriptCtx is a bit messed at this point so initialization is required again...
         initContext(scriptCtx);
 
         scriptCtx.evaluateString(globalScope, flowCode, flowCodeFileName, 1, null);
@@ -203,39 +208,65 @@ public class FlowService {
         
     }
     
-    private FlowStatus processPause(ContinuationPending pending, String flowName) throws
-            FlowCrashException, IOException {
-        
-        Pair<String, Object> p = (Pair<String, Object>) pending.getApplicationState();
-        String templPath = p.getFirst();
+    public void closeSubflow() throws IOException {
+        parentFlowData = null;
+    }
+    
+    private FlowStatus processPause(ContinuationPending pending, FlowStatus currentFlowSt, 
+            String flowName) throws FlowCrashException, IOException {
 
-        if (!templPath.contains("."))
-            throw new FlowCrashException(
-                    "Expecting file extension for the template to render: " + templPath);
-
-        FlowStatus status = getRunningFlowStatus();
+        FlowStatus status = currentFlowSt;
         if (status == null) {
             status = new FlowStatus();
             status.setQname(flowName);
             status.setStartedAt(System.currentTimeMillis());
         }
         
-        status.setParent(parentFlowData);
-        status.setTemplatePath(computeTemplatePath(templPath, parentFlowData));
-        status.setTemplateDataModel((Map<String, Object>) p.getSecond());
+        PendingException pe = null;
+        if (pending instanceof PendingRenderException) {
+
+            PendingRenderException pre = (PendingRenderException) pending;
+            String templPath = pre.getTemplatePath();
+            
+            if (!templPath.contains("."))
+                throw new FlowCrashException(
+                        "Expecting file extension for the template to render: " + templPath);
+
+            status.setTemplatePath(computeTemplatePath(templPath, parentFlowData));
+            status.setTemplateDataModel(pre.getDataModel());
+            status.setExternalRedirectUrl(null);
+            pe = pre;
+
+        } else if (pending instanceof PendingRedirectException) {
+            
+            PendingRedirectException pre = (PendingRedirectException) pending;
+            
+            status.setTemplatePath(null);
+            status.setTemplateDataModel(null);
+            status.setExternalRedirectUrl(pre.getLocation());
+            pe = pre;
+            
+        } else {
+            throw new IllegalArgumentException("Unexpected instance of ContinuationPending");
+        }
         
+        if (parentFlowData == null) {
+            status.getParentsData().pollLast();
+        } else {
+            status.getParentsData().offer(parentFlowData);
+        }
+logger.debug("====!{}", status.getParentsData().size());        
+        status.setAllowCallbackResume(pe.isAllowCallbackResume());
         //Save the state
-        FlowUtils.saveState(sessionId, status, (NativeContinuation) pending.getContinuation(), globalScope);
+        FlowUtils.saveState(sessionId, status, pe.getContinuation(), globalScope);
 
         return status;
         
     }
     
-    private void ensureTimeNotExceeded(FlowStatus flstatus, boolean afterExternalRedirect)
-            throws FlowTimeoutException {
+    private void ensureTimeNotExceeded(FlowStatus flstatus) throws FlowTimeoutException {
 
-        int time = afterExternalRedirect ? engineConf.getReturnAfterRedirectTime()
-                : engineConf.getInterruptionTime();
+        int time = engineConf.getInterruptionTime();
         if (System.currentTimeMillis() - flstatus.getStartedAt() > 1000 * time) {
             throw new FlowTimeoutException("Your authentication attempt has run for more than "
                     + time + " seconds", flstatus.getQname());
@@ -244,10 +275,14 @@ public class FlowService {
     }
     
     private String computeTemplatePath(String path, ParentFlowData pfd) {
-        String[] overrides = Optional.ofNullable(pfd).map(ParentFlowData::getPathOverrides).orElse(null);
-        if (overrides != null && Stream.of(overrides).anyMatch(path::equals))
+        
+        String[] overrides = Optional.ofNullable(pfd).map(ParentFlowData::getPathOverrides)
+                .orElse(new String[0]);
+
+        if (Stream.of(overrides).anyMatch(path::equals))
             return pfd.getParentBasepath() + "/" + path;
         return path;
+
     }
     
     private Object[] getFlowParams(List<String> inputNames, String strParams) throws JsonProcessingException {

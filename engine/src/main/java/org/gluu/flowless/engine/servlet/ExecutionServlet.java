@@ -7,15 +7,14 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.HttpMethod;
-import javax.ws.rs.core.Response.Status;
 
 import org.gluu.flowless.engine.exception.FlowCrashException;
 import org.gluu.flowless.engine.exception.FlowTimeoutException;
 import org.gluu.flowless.engine.exception.TemplateProcessingException;
 import org.gluu.flowless.engine.misc.FlowUtils;
 import org.gluu.flowless.engine.model.EngineConfig;
-import org.gluu.flowless.engine.model.ExternalRedirect;
 import org.gluu.flowless.engine.model.FlowResult;
 import org.gluu.flowless.engine.model.FlowStatus;
 import org.gluu.flowless.engine.page.BasicTemplateModel;
@@ -27,11 +26,15 @@ import org.slf4j.Logger;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-@WebServlet(urlPatterns = "*" + ExecutionServlet.URL_SUFFIX)
+@WebServlet(urlPatterns = {
+    "*" + ExecutionServlet.URL_SUFFIX,
+    ExecutionServlet.CALLBACK_PATH
+})
 public class ExecutionServlet extends HttpServlet {
     
     public static final String URL_SUFFIX = ".fls"; 
     public static final String URL_PREFIX = "/fl/";
+    public static final String CALLBACK_PATH = URL_PREFIX + "callback";
 
     @Inject
     private Logger logger;
@@ -62,25 +65,28 @@ public class ExecutionServlet extends HttpServlet {
             String flQname = flowQnameInRequest(path);
             
             if (flQname == null) {
-                response.setStatus(Status.NOT_FOUND.getStatusCode());
-            } else {
-                logger.info("Attempting to trigger flow {}", flQname);
-                
-                try {
-                    String strParams = flowParamsAsString(request.getQueryString());
-                    fstatus = flowService.startFlow(flQname, strParams);
-                    FlowResult result = fstatus.getResult();
-                    
-                    if (result == null) {
-                        sendRedirect(response, webCtx.getContextPath(), fstatus);
-                    } else {
-                        sendFinalRedirect(response, result);
-                    }
-                } catch (FlowCrashException e) {
-                    sendFlowCrashed(response, e.getMessage());
-                }
+                sendNotFound(response);
+                return;
             }
+            
+            logger.info("Attempting to trigger flow {}", flQname);
+            try {
+                String strParams = flowParamsAsString(request.getQueryString());
+                fstatus = flowService.startFlow(flQname, strParams);
+                FlowResult result = fstatus.getResult();
+
+                if (result == null) {
+                    sendRedirect(response, webCtx.getContextPath(), fstatus, true);
+                } else {
+                    sendFinalRedirect(response, result);
+                }
+            } catch (FlowCrashException e) {
+                sendFlowCrashed(response, e.getMessage());
+            }
+
         } else {
+            if (processCallback(request, response, fstatus, path)) return;
+            
             String expectedUrl = getExpectedUrl(fstatus);
 
             if (path.equals(expectedUrl)) {
@@ -91,35 +97,29 @@ public class ExecutionServlet extends HttpServlet {
                 //This is an attempt to GET a page which is not the current page of this flow
                 sendPageMismatch(response, expectedUrl);
             }
+            
         }
         
     }
-    
+
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         
-        FlowStatus fstatus = flowService.getRunningFlowStatus();        
-        if (fstatus == null) return;
-
+        FlowStatus fstatus = flowService.getRunningFlowStatus();
         String path = webCtx.getRelativePath();
+
+        if (fstatus == null) {
+            sendNotFound(response);
+            return;
+        }
+        
+        if (processCallback(request, response, fstatus, path)) return;
+        
         String expectedUrl = getExpectedUrl(fstatus);
 
         if (path.equals(expectedUrl)) {
-            try {
-                fstatus = flowService.continueFlow(fstatus.getQname(), request.getParameterMap(), false);
-                FlowResult result = fstatus.getResult();
-
-                if (result == null) {
-                    sendRedirect(response, webCtx.getContextPath(), fstatus);
-                } else {                    
-                    sendFinalRedirect(response, result);
-                }
-            } catch (FlowTimeoutException te) {
-                sendFlowTimeout(response, te.getMessage(), te.getQname());
-            } catch (FlowCrashException ce) {
-                sendFlowCrashed(response, ce.getMessage());
-            }
+            continueFlow(request, response, fstatus, false);
         } else {
             //This is an attempt to POST to a URL which is not the current page of this flow
             sendPageMismatch(response, expectedUrl);
@@ -143,13 +143,49 @@ public class ExecutionServlet extends HttpServlet {
             } else if (method.equals(HttpMethod.POST)) {
                 doPost(request, response);
             } else {
-                response.sendError(Status.METHOD_NOT_ALLOWED.getStatusCode());
+                response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             }
         } else {
-            response.setStatus(Status.NOT_FOUND.getStatusCode());         
+            sendNotFound(response);
             logger.debug("Unexpected path {}", path);
         }
    
+    }
+    
+    private void continueFlow(HttpServletRequest request, HttpServletResponse response, FlowStatus fstatus,
+            boolean callbackResume) throws IOException {
+
+        try {
+            fstatus = flowService.continueFlow(fstatus, request.getParameterMap(), callbackResume);
+            FlowResult result = fstatus.getResult();
+
+            if (result == null) {
+                sendRedirect(response, webCtx.getContextPath(), fstatus, request.getMethod().equals(HttpMethod.GET));
+            } else {                    
+                sendFinalRedirect(response, result);
+            }
+        } catch (FlowTimeoutException te) {
+            sendFlowTimeout(response, te.getMessage(), te.getQname());
+        } catch (FlowCrashException ce) {
+            sendFlowCrashed(response, ce.getMessage());
+        }
+        
+    }
+    
+    private boolean processCallback(HttpServletRequest request, HttpServletResponse response, 
+            FlowStatus fstatus, String path) throws IOException {
+
+        if (path.equals(CALLBACK_PATH)) {
+            if (fstatus.isAllowCallbackResume()) {
+                continueFlow(request, response, fstatus, true);
+            } else {
+                logger.warn("Unexpected incoming response at flow callback endpoint");
+                sendNotFound(response);
+            }
+            return true;
+        }
+        return false;
+        
     }
 
     /**
@@ -190,16 +226,26 @@ public class ExecutionServlet extends HttpServlet {
         
     }
     
-    private void sendRedirect(HttpServletResponse response, String contextPath,
-            FlowStatus fls) throws IOException {
+    private void sendNotFound(HttpServletResponse response) {
+        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+    }
+    
+    private void sendRedirect(HttpServletResponse response, String contextPath, FlowStatus fls,
+            boolean currentIsGet) throws IOException {
         
-        ExternalRedirect exr = fls.getExternalRedirect();
-        if (exr == null) {
+        String newLocation = fls.getExternalRedirectUrl();
+        if (newLocation == null) {
             // Local redirection
-            response.sendRedirect(contextPath + getExpectedUrl(fls));
+            newLocation = contextPath + getExpectedUrl(fls);
+        }
+        //See https://developer.mozilla.org/en-US/docs/Web/HTTP/Redirections and
+        //https://stackoverflow.com/questions/4764297/difference-between-http-redirect-codes
+        if (currentIsGet) {
+            //This one uses 302 (Found) redirection
+            response.sendRedirect(newLocation);
         } else {
-            // Redirect to an external site
-            // TODO:
+            response.setHeader(HttpHeaders.LOCATION, newLocation);
+            response.setStatus(HttpServletResponse.SC_SEE_OTHER);
         }
         
     }
@@ -247,13 +293,14 @@ public class ExecutionServlet extends HttpServlet {
             engineConf.getDefaultResponseHeaders().forEach((h, v) -> response.setHeader(h, v));
             templatingService.process(path, dataModel, response.getWriter(), false);
         } catch (TemplateProcessingException e) {
-            response.sendError(Status.INTERNAL_SERVER_ERROR.getStatusCode(), e.getMessage());
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
         }
 
     }
     
     private String getExpectedUrl(FlowStatus fls) {
         String templPath = fls.getTemplatePath();
+        if (templPath == null) return null;
         return URL_PREFIX + templPath.substring(0, templPath.lastIndexOf(".")) + URL_SUFFIX;
     }
 

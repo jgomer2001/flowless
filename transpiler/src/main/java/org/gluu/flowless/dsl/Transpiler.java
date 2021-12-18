@@ -236,7 +236,7 @@ public class Transpiler {
 
     public static void main(String... args) throws Exception {
         
-        Transpiler tr = new Transpiler("main_flow2", "org.gluu.flow2"/*org.gluu.Main"*/, null);
+        Transpiler tr = new Transpiler("main_abc", "def.abc"/*org.gluu.Main"*/, null);
         String dslCode = new String(Files.readAllBytes(Paths.get(args[0])), UTF_8);
         SaplingDocument doc = tr.asXML(dslCode);
         //System.out.println(tr.getInputs(doc));
