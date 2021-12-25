@@ -150,8 +150,8 @@
             </p>
             <hr />
             <div class="px-4 pt-1">
-                <z:div visible="@load(empty vm.methodDeclarations)" align="center fw-bolder">
-                    There are no eligible methods!
+                <z:div visible="@load(empty vm.methodDeclarations)" align="center">
+                    <span class="fw-bolder">There are no eligible methods!</span>
                 </z:div>
                 <table class="table table-hover">
                     <h:tbody children="@load(vm.methodDeclarations)">
@@ -208,14 +208,14 @@
                     </z:tabpanel>
                     
                     <z:tabpanel>                        
-                        <div class="pb-3 pt-2">
+                        <z:div class="pb-3 pt-2">
                             <p>
                                 Describe the output and provide sample values. They are helpful when the action returns an Object.
                                 <br />
                                 Check <a href="javascript:;">here</a> to learn how to supply sample outputs effectively.
                             </p>
                             <z:textbox class="small py-2" cols="80" rows="10" value="@bind(vm.newAction.output)" />
-                        </div>
+                        </z:div>
                     </z:tabpanel>
                     
                     <z:tabpanel>
@@ -239,9 +239,7 @@
                                 </zk:template>
                             </h:tbody>
                         </h:table>
-                        <z:div visible="@load(empty vm.newAction.inputs)">
-                            This is a no-params action.
-                        </z:div>
+                        <z:label visible="@load(empty vm.newAction.inputs)" value="This is a no-params action "/>
                     </z:tabpanel>
                 </z:tabpanels>
             </z:tabbox>

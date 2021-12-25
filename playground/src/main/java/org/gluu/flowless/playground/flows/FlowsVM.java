@@ -1,255 +1,109 @@
 package org.gluu.flowless.playground.flows;
 
-import java.io.BufferedReader;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
-import javax.xml.transform.Source;
-import net.sf.saxon.s9api.Processor;
-import net.sf.saxon.s9api.SaxonApiException;
-import net.sf.saxon.s9api.Serializer;
-import org.gluu.flowless.dsl.Transpiler;
-import org.gluu.flowless.dsl.TranspilerException;
-import org.gluu.flowless.dsl.error.SyntaxException;
-import org.gluu.flowless.playground.FlowElementsService;
+
 import org.gluu.flowless.playground.Utils;
+import org.gluu.flowless.playground.ZKInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.zkoss.bind.annotation.Init;
 import org.zkoss.bind.annotation.NotifyChange;
-import org.zkoss.util.Pair;
-import org.zkoss.zk.ui.event.Event;
-import org.zkoss.zk.ui.event.Events;
-import org.zkoss.zul.ListModelList;
 import org.zkoss.zul.Messagebox;
 
 public class FlowsVM {
-
-    private static final String FLOW_TEMPLATE = "flowTemplate";
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final Pattern namePat = Pattern.compile("^[a-zA-Z_]\\w*$");
-    private final Pattern namespPat = Pattern.compile("^[a-zA-Z_]\\w*(\\.[a-zA-Z_]\\w*)*$");
-
-    private Processor processor = new Processor(false);
-    private static String dummyFlowCode;    
-    private String basePath;
     
-    private ListModelList<String> flows;
-    private Flow flow;
-    private Flow tmpFlow;
+    public static final String FLOWS_DIR = "flows";
 
-    public ListModelList<String> getFlows() {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private String flowsBasePath;
+    
+    private Flow selectedFlow;
+    private List<Flow> flows;
+    private ObjectMapper mapper;
+    private String code;
+    
+    public String getCode() {
+        return code;
+    }
+
+    public List<Flow> getFlows() {
         return flows;
     }
-
-    public Flow getFlow() {
-        return flow;
+    
+    public Flow getSelectedFlow() {
+        return selectedFlow;
     }
-
-    public Flow getTmpFlow() {
-        return tmpFlow;
+    
+    @NotifyChange({ "selectedFlow", "code" })
+    public void flowSelected(Flow selected) throws IOException {
+        selectedFlow = selected;
+        code = Files.readString(Paths.get(flowsBasePath, selected.getQname()), StandardCharsets.UTF_8);
     }
 
     @Init
     public void init() throws IOException {
-        reload();
-
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(
-                getClass().getClassLoader().getResourceAsStream(FLOW_TEMPLATE), StandardCharsets.UTF_8
-        ))) {
-
-            String code = br.lines().reduce("", (a, b) -> a + "\n" + b);
-            code = code.substring(1, code.length());
-            dummyFlowCode = code + "\n";
-        }
-        
+        flowsBasePath = ZKInitializer.getBasePath() + File.separator + FLOWS_DIR;
+        mapper = new ObjectMapper();
+        reloadFlows();  
     }
 
-    @NotifyChange("flow")
-    public void selected() throws IOException {
-
-        String name = flows.getSelection().stream().findFirst().get();
-        logger.debug("Selected flow {}", name);
-        Path path = Paths.get(basePath, name + ".json");
-        String taskDetails = Utils.fileContents(path);
-/*
-        try (StringReader reader = new StringReader(taskDetails)) {
-            Gson gson = new Gson();
-            flow = gson.fromJson(reader, Flow.class);
-
-            flow.setCode(Utils.fileContents(Paths.get(basePath, name)));
-        }
-*/
-    }
-
-    @NotifyChange({"flow", "flows"})
-    public void delete() throws IOException {
-
-        String name = flows.getSelection().stream().findFirst().get();
-        logger.debug("Selected flow {}", name);
-
-        List<String> exts = Arrays.asList("json", "xml", "js", null);
-
-        for (String ext : exts) {
-            Path path = Paths.get(basePath, name + (ext == null ? "" : ("." + ext)));
-            if (Files.deleteIfExists(path)) {
-                logger.info("{} deleted", path);
-            }
-        }
-        
-        flow = null;
-        if (flows.remove(name)) {
-            Messagebox.show("Flow {} has been deleted", null, 
-                    Messagebox.OK, Messagebox.INFORMATION);
-        }
-        
-    }
-
-    @NotifyChange("tmpFlow")
-    public void precreate() {
-        tmpFlow = new Flow();
-    }
-
-    @NotifyChange("tmpFlow")
-    public void cancel(Event event) {
-        tmpFlow = null;
-        if (event != null && event.getName().equals(Events.ON_CLOSE)) {
-            event.stopPropagation();
-        }
-    }
-
-    @NotifyChange({"flows", "tmpFlow", "flow"})
-    public void save() throws IOException {
-
-        String name = tmpFlow.getName();
-        String namespace = tmpFlow.getNamespace();
-        String description = tmpFlow.getDescription();
-        String author = tmpFlow.getAuthor();
-
-        if (Stream.of(name, description, author).anyMatch(Objects::isNull)) {
-            Messagebox.show("One or more required fields are empty", null,
-                     Messagebox.OK, Messagebox.EXCLAMATION);
-            return;
-        }
-        if (!namePat.matcher(name).matches()) {
-            Messagebox.show("Invalid characters in name. Use letters, digits, or underscores", null,
-                    Messagebox.OK, Messagebox.EXCLAMATION);
-            return;
-        }
-        if (namespace != null && !namespPat.matcher(namespace).matches()) {
-            Messagebox.show("Invalid characters in namespace. Use letters, digits, dots, or underscores", null,
-                     Messagebox.OK, Messagebox.EXCLAMATION);
-            return;
-        }
-
-        String qname = (namespace == null ? "" : (namespace + ".")) + name;
-        Path path = Paths.get(basePath, qname);
-
-        if (Files.exists(path)) {
-            Messagebox.show("The flow '" + path + "' already exists", null,
-                     Messagebox.OK, Messagebox.EXCLAMATION);
-            return;
-        }
-
-        flow = new Flow();
-        flow.setName(name);
-        flow.setNamespace(namespace);
-        flow.setAuthor(author);
-        flow.setDescription(description);
-        flow.setCode(String.format(dummyFlowCode, qname));
-
-        flow.setTimestamp(System.currentTimeMillis());
-        flow.setEditable(true);
-
-        //Save to disk basic flow with its metadata
-        store(flow, path);
-
-        flows.add(0, path.getFileName().toString());
-        //Simulate click on this new flow
-        flows.setSelection(Collections.singletonList(path.getFileName().toString()));
-        
-        //Simulate clicking on window's cancel
-        cancel(null);
-
-        Messagebox.show("The flow was created with a dummy implementation. Click OK to continue working.", null,
-                Messagebox.OK, Messagebox.INFORMATION);
-
-    }
-
-    @NotifyChange("flow")
-    public void update() throws IOException, SaxonApiException {
-
-        try {
-            String qname = flows.getSelection().stream().findFirst().get();
-            
-            Transpiler tr = new Transpiler(qname,
-                    FlowElementsService.getTasksList().getY(), flows.getInnerList());
-            Source xml = tr.asXML(flow.getCode());
-            
-            flow.setInputs(tr.getInputs(xml).toArray(new String[0]));
-
-            String path = basePath + File.separator + qname;            
-            logger.debug("Updating basic flow files");
-            store(flow, Paths.get(path));
-            
-            Serializer serializer = processor.newSerializer();
-            serializer.setOutputProperty(Serializer.Property.INDENT, "true");
-            String xmlString = serializer.serializeToString(xml);
-
-            logger.info("Saving XML and javascript representations");
-            Utils.contentsToFile(Paths.get(path + ".xml"),  xmlString);
-            
-            String jsString = tr.generateJS(xml);   
-            Utils.contentsToFile(Paths.get(path + ".js"),  jsString);
-            
-            Messagebox.show("Successful operation", null, Messagebox.OK, Messagebox.INFORMATION);
-            
-        } catch (TranspilerException te) {
-            logger.error(te.getMessage(), te);
-            Messagebox.show(te.getMessage(), "Transpiler error", Messagebox.OK, Messagebox.EXCLAMATION);
-        } catch (SyntaxException se) {
-            logger.error(se.getMessage(), se);
-            String err = String.format("%s\nLine: %d, Column: %d", se.getMessage(), se.getLine(), se.getColumn());
-            Messagebox.show(err, "Syntax error", Messagebox.OK, Messagebox.EXCLAMATION);
-        }
-        
-    }
-
-    private void reload() throws IOException {
-
-        flow = null;
-        Pair<String, List<String>> tmp = FlowElementsService.getFlowsList();
-
-        basePath = tmp.getX();
-        flows = new ListModelList<>(tmp.getY());
+    @NotifyChange({ "flows" })
+    public void reloadFlows() throws IOException {
+        flows = getFlows(flowsBasePath);
         logger.debug("{} flows found", flows.size());
-
     }
 
-    private void store(Flow f, Path dest) throws IOException {
+    public void addFlow() {
+        showNotImplemented();
+    }
 
-        String code = f.getCode();
-        f.setCode(null);
-/*
-        Gson gson = new Gson();
-        Utils.contentsToFile(Paths.get(dest.toString() + ".json"), gson.toJson(f));
-        logger.info("Saving {}", dest);
-        Utils.contentsToFile(dest, code);
+    public void editFlow() {
+        showNotImplemented();
+    }
+    
+    public void removeFlow() {
+        showNotImplemented();        
+    }
+    
+    private List<Flow> getFlows(String base) throws IOException {
         
-        //restore
-        f.setCode(code);
-*/
+        List<Flow> list = new ArrayList<>();
+        Path basePath = Paths.get(base);
+        
+        Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
+            
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs)
+                    throws IOException {
+         
+                String ext = Utils.filenameExtension(file.getFileName().toString());
+                
+                if (ext != null && ext.toLowerCase().equals("json")) {
+                    list.add(mapper.readValue(file.toFile(), Flow.class));
+                }
+                return FileVisitResult.CONTINUE;
+                
+            }
+            
+        });
+        return list;
+        
     }
-
+    
+    private void showNotImplemented() {
+        Messagebox.show("Sorry, this feature is not implemented", null, Messagebox.OK, Messagebox.INFORMATION);
+    }
+    
 }

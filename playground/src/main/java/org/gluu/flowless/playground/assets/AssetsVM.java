@@ -31,7 +31,7 @@ import org.zkoss.zul.Treeitem;
 public class AssetsVM {
 
     private static final String[] TXT_EXTENSIONS = new String[]{"css", "js", "txt",
-        "xml", "html", "htm", "xhtml"};
+        "xml", "html", "htm", "xhtml", "ftl", "ftlh"};
     private static final String ASSETS_DIR = "fl";
     private final Logger logger = LoggerFactory.getLogger(getClass());
 

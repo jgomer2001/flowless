@@ -1,0 +1,33 @@
+<?page language="xhtml"?>
+<?taglib uri="http://www.zkoss.org/dsp/web/core" prefix="c"?>
+<zk:zk xmlns:z="zul" xmlns:h="xhtml" xmlns:zk="zk" xmlns:w="client" xmlns="native">
+
+<z:div viewModel="@('org.gluu.flowless.playground.flows.FlowDetailVM')" class="card p-3">
+
+    <h4>${vm.flow.displayName}</h4>
+    <p class="small">Flow qualified name: ${vm.flow.qname}</p>
+    
+    <p unless="${empty vm.flow.author}" class="small">Author: ${vm.flow.author}</p>    
+    
+    <p class="small">Created: 
+        <z:label class="small" value="@load(vm.flow.timestamp) @converter('org.gluu.flowless.playground.DateConverter')"/>
+    </p>
+    
+    <zk:zk if="${empty vm.flow.inputs}">
+    <p class="small">No input parameters</p>
+    </zk:zk>
+    
+    <zk:zk unless="${empty vm.flow.inputs}">
+    <p class="small">Inputs: ${vm.flow.inputs.toString()}</p>
+    </zk:zk>
+    
+    <p>${vm.flow.description}</p>
+                                     
+    <a href="${vm.launchUrl}" target="_blank">
+        <i class="fas fa-external-link-alt small" />
+        Launch Flow
+    </a>
+    
+</z:div>
+
+</zk:zk>

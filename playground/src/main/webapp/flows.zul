@@ -1,0 +1,82 @@
+<?page language="xhtml"?>
+<?init class="org.zkoss.zk.ui.util.Composition" template="/template.zul"?>
+<?taglib uri="http://www.zkoss.org/dsp/web/core" prefix="c"?>
+<zk:zk xmlns:z="zul" xmlns:h="xhtml" xmlns:zk="zk" xmlns:w="client" xmlns="native">
+
+<h:div class="pt-3 d-flex flex-column align-items-center" self="@define(content)" viewModel="@('org.gluu.flowless.playground.flows.FlowsVM')">
+    
+    <script>
+        function setValue(id, str) {
+            var widget =  zk.$('$' + id);
+            widget.setValue(str);
+        }
+    </script>
+
+    <z:div class="d-flex pt-1 align-content-between">
+        
+        <div class="p-2 d-flex flex-column pe-3">
+
+            <z:popup id="poprefreshF">Refresh list</z:popup>
+            <z:popup id="popeditF">Edit</z:popup>
+            <z:popup id="popdelF">Remove the selected flow</z:popup>
+            <z:popup id="popaddF">Create a flow</z:popup>
+            
+            <div class="d-flex justify-content-around pb-2 px-5 fs-5">
+                <z:a onClick="@('reloadFlows')" tooltip="poprefreshF, position=after_center"
+                    class="me-4">
+                    <i class="fas fa-sync-alt" />
+                </z:a>
+                <z:a onClick="@('editFlow')" disabled="@load(vm.selectedFlow eq null)" tooltip="popeditF, position=after_center"
+                    class="me-4">
+                    <i class="fas fa-pencil-alt" />
+                </z:a>
+                <z:a onClick="@('removeFlow')" disabled="@load(vm.selectedFlow eq null)" tooltip="popdelF, position=after_center"
+                    class="me-4">
+                    <i class="fas fa-trash-alt" />
+                </z:a>
+                <z:a onClick="@('addFlow')" tooltip="popaddF, position=after_center">
+                    <i class="fas fa-plus" />
+                </z:a>
+            </div>
+            
+            <z:listbox class="flex-grow-1" vflex="1"
+                model="@load(vm.flows)" onSelect="@('flowSelected', self.selectedItem.value)" width="400px">
+                <zk:template name="model">
+                    <z:listitem label="${c:cat(each.displayName, empty each.author ? '' : c:cat3(' (by ', each.author,')'))}" value="${each}" />
+                </zk:template>
+            </z:listbox>
+        </div>
+
+        <div class="p-2 d-flex flex-column">
+
+            <z:tabbox class="p-1">
+                <z:tabs>
+                    <z:tab class="fs-6" label="Code" />
+                    <z:tab class="fs-6" label="Details" />
+                </z:tabs>
+                <z:tabpanels>
+                    <z:tabpanel>           
+                        <div class="d-flex flex-column">
+                            <!--div class="d-flex justify-content-between flex-grow-1">
+                                <span> </span>
+                                <span class="small fw-light pe-3"><i class="fas fa-exclamation-circle"></i> no syntax highlighting available yet, sorry</span>
+                            </div-->
+                            <z:textbox id="content" rows="35" cols="95" readonly="true" class="font-monospace py-2 small no-resize" value="@load(vm.code)" />
+                        </div>
+                    </z:tabpanel>
+                    <z:tabpanel>
+                    
+                        <z:div visible="@load(vm.selectedFlow ne null)"><!-- got a strange javascript output when the variable is null -->
+                            <z:include src="@load(c:cat('flowDetails.zul?flowId=', c:encodeURIComponent(vm.selectedFlow.qname)))" /> 
+                        </z:div>
+                        
+                    </z:tabpanel>
+                </z:tabpanels>
+            </z:tabbox>
+        </div>
+    </z:div>
+
+</h:div>
+
+</zk:zk>
+

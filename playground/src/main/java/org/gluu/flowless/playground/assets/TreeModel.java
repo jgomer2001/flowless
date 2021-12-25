@@ -27,7 +27,7 @@ public class TreeModel {
     
     private static final String[] EXTENSIONS = new String[]{"css", "woff2", "js"
     , "jpg", "png", "svg", "gif", "ico", "webp", "txt", "xml", "html", "htm", "xhtml"
-    , "pdf"};
+    , "ftl", "ftlh", "pdf"};
 
     public static SortedSet<String> ALLOWED_EXTENSIONS = Stream.of(EXTENSIONS)
             .collect(Collectors.toCollection(TreeSet::new));

@@ -1,15 +1,18 @@
 package org.gluu.flowless.playground.flows;
 
+import java.util.List;
+
 public class Flow {
 
     private String qname;
     private String id;
+    private String displayName;
     private String author;
     private long timestamp;
     private boolean editable;
 
     private String description;
-    private String[] inputs;
+    private List<String> inputs;
     private String code;
 
     /**
@@ -83,20 +86,6 @@ public class Flow {
     }
 
     /**
-     * @return the inputs
-     */
-    public String[] getInputs() {
-        return inputs;
-    }
-
-    /**
-     * @param inputs the inputs to set
-     */
-    public void setInputs(String[] inputs) {
-        this.inputs = inputs;
-    }
-
-    /**
      * @return the code
      */
     public String getCode() {
@@ -116,6 +105,22 @@ public class Flow {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public List<String> getInputs() {
+        return inputs;
+    }
+
+    public void setInputs(List<String> inputs) {
+        this.inputs = inputs;
     }
 
 }

@@ -17,12 +17,12 @@
             <ul>
                 <li>Actions (the key blocks in flows) are implemented using Java language</li>
                 <li>Actions can execute arbitrary logic</li>
-                <li>The special <span class="fw-bolder fst-italic">Render</span> action is used to send web content to the user</li> 
+                <!--li>The special <span class="fw-bolder fst-italic">Render</span> action is used to send web content to the user</li--> 
             </ul>
         </li>
         <li>Assets
             <ul>
-                <li>These are elements needed to compose the UI elements: pages, CSS, javascript, etc.</li>
+                <li>These are elements needed to compose the UI elements: templates, CSS, javascript, etc.</li>
             </ul>
         </li>
     </ul>

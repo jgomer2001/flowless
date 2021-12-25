@@ -2,7 +2,7 @@
 <?taglib uri="http://www.zkoss.org/dsp/web/core" prefix="c"?>
 <zk:zk xmlns:z="zul" xmlns:h="xhtml" xmlns:zk="zk" xmlns:w="client" xmlns="native">
 
-<z:div viewModel="@('org.gluu.flowless.playground.actions.ActionDetailVM')" class="card p-1">
+<z:div viewModel="@('org.gluu.flowless.playground.actions.ActionDetailVM')" class="card p-3">
 
     <h4>${vm.action.name.displayName}</h4>
     <p class="small">Author: ${vm.action.author}</p>
