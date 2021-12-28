@@ -1,37 +1,27 @@
 package org.gluu.flowless.playground.actions;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+
+import org.gluu.flowless.model.Name;
+import org.gluu.flowless.model.Method;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Action {
+public class Action extends Method {
     
-    private String id;
     private String author;
     
     private String language = "java";
     private long timestamp;
     
-    private Name name;
+    private Name name = new Name();
     private List<Name> inputs;
     
     private boolean returnsVoid;
     private String output;
-
-    /**
-     * @return the 
-     */
-    public String getId() {
-        return id;
-    }
-
-    /**
-     * @param id
-     */
-    public void setId(String id) {
-        this.id = id;
-    }
+    private Map<String, Object> customProps;
 
     /**
      * @return the language
@@ -113,14 +103,12 @@ public class Action {
         this.returnsVoid = returnsVoid;
     }
 
-    @Override
-    public boolean equals(Object other) {
-        return Action.class.isInstance(other) && id.equals(((Action) other).getId());
+    public Map<String, Object> getCustomProps() {
+        return customProps;
     }
-    
-    @Override
-    public int hashCode() {
-        return Optional.ofNullable(id).map(String::hashCode).orElse(0);
+
+    public void setCustomProps(Map<String, Object> customProps) {
+        this.customProps = customProps;
     }
 
 }

@@ -6,7 +6,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class Utils {
-
     
     public static String filenameExtension(String fileName) {
         int dotAt = fileName.lastIndexOf(".");

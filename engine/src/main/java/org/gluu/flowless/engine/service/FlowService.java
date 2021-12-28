@@ -18,15 +18,15 @@ import javax.annotation.PreDestroy;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+
 import org.gluu.flowless.engine.continuation.PendingException;
 import org.gluu.flowless.engine.continuation.PendingRedirectException;
 import org.gluu.flowless.engine.continuation.PendingRenderException;
-
 import org.gluu.flowless.engine.exception.FlowCrashException;
 import org.gluu.flowless.engine.exception.FlowTimeoutException;
 import org.gluu.flowless.engine.misc.FlowUtils;
 import org.gluu.flowless.engine.model.EngineConfig;
-import org.gluu.flowless.engine.model.Flow;
+import org.gluu.flowless.model.Flow;
 import org.gluu.flowless.engine.model.FlowResult;
 import org.gluu.flowless.engine.model.FlowStatus;
 import org.gluu.flowless.engine.model.ParentFlowData;
@@ -79,11 +79,11 @@ public class FlowService {
     public FlowStatus startFlow(String flowName, String strParams) throws FlowCrashException {
         
         FlowStatus status = null;
-        try {            
+        try {
             //retrieve the flow, execute until render/redirect is reached
             Flow fl = getFlowObject(flowName);
             String funcName = fl.getId();
-            Object[] params = getFlowParams(fl.getInputNames(), strParams);
+            Object[] params = getFlowParams(fl.getInputs(), strParams);
             
             String baseCode = FlowUtils.fread(EngineConfig.ROOT_DIR, JS_UTIL);
             String flowCodeFileName = flowName + SCRIPT_SUFFIX;
@@ -133,7 +133,7 @@ public class FlowService {
         FlowUtils.terminateFlow(sessionId);
     }
     
-    public FlowStatus continueFlow(FlowStatus currentFlowSt, Map<String, String[]> parameters,
+    public FlowStatus continueFlow(FlowStatus currentFlowSt, String jsonParameters,
             boolean callbackResume) throws FlowCrashException, FlowTimeoutException {
         
         FlowStatus status = null;
@@ -154,7 +154,7 @@ public class FlowService {
                 logger.debug("Resuming flow");
                 parentFlowData = currentFlowSt.getParentsData().peekLast();
                 NativeObject result = (NativeObject) scriptCtx.resumeContinuation(pcont.getSecond(), 
-                        globalScope, FlowUtils.toJsonString(parameters));
+                        globalScope, jsonParameters);
 
                 status = new FlowStatus();
                 status.setResult(flowResultFrom(result));

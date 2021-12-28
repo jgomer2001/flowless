@@ -1,5 +1,6 @@
 package org.gluu.flowless.engine.model;
 
+import java.io.File;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -11,6 +12,7 @@ import org.gluu.util.Pair;
 public class EngineConfig {
 
     public static final String ROOT_DIR = "/home/jgomer/Downloads/jetty/jetty-base/at";
+    public static final String SCRIPTS_DIR = EngineConfig.ROOT_DIR + File.separator + "scripts";
     
     private int interruptionTime = 90;
     
@@ -25,6 +27,10 @@ public class EngineConfig {
                 //, new Pair<>(HttpHeaders.CACHE_CONTROL, "no-cache")
                 //, new Pair<>(HttpHeaders.CACHE_CONTROL, "no-store")
         ).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
+    
+    public String getJsonErrorPage(String page) {
+        return "json_"+ page;
+    }
     
     public int getInterruptionTime() {
         return interruptionTime;

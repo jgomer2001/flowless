@@ -1,33 +1,19 @@
 package org.gluu.flowless.playground.flows;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-public class Flow {
+import java.util.Map;
 
-    private String qname;
-    private String id;
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Flow extends org.gluu.flowless.model.Flow {
+
     private String displayName;
     private String author;
     private long timestamp;
     private boolean editable;
 
     private String description;
-    private List<String> inputs;
-    private String code;
-
-    /**
-     * @return the name
-     */
-    public String getQname() {
-        return qname;
-    }
-
-    /**
-     * @param name the name to set
-     */
-    public void setQname(String name) {
-        this.qname = name;
-    }
+    private Map<String, Object> customProps;
 
     /**
      * @return the author
@@ -85,28 +71,6 @@ public class Flow {
         this.description = description;
     }
 
-    /**
-     * @return the code
-     */
-    public String getCode() {
-        return code;
-    }
-
-    /**
-     * @param code the code to set
-     */
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
     public String getDisplayName() {
         return displayName;
     }
@@ -115,12 +79,12 @@ public class Flow {
         this.displayName = displayName;
     }
 
-    public List<String> getInputs() {
-        return inputs;
+    public Map<String, Object> getCustomProps() {
+        return customProps;
     }
 
-    public void setInputs(List<String> inputs) {
-        this.inputs = inputs;
+    public void setCustomProps(Map<String, Object> customProps) {
+        this.customProps = customProps;
     }
 
 }

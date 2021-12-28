@@ -246,7 +246,7 @@ public class ActionsVM {
                     }
                     if (!errors.isEmpty()) {
                         String files = errors.toString();
-                        msg = String.format("%s. There were problems processing: {}." , msg, files.substring(1, msg.length() - 1));
+                        msg = String.format("%s. There were problems processing: %s." , msg, files.substring(1, files.length() - 1));
                         msg += " Ensure they are syntactically valid and have a package declaration.";
                     }
                     Messagebox.show(msg, null, Messagebox.OK, Messagebox.NONE);

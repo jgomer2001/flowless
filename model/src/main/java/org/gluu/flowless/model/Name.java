@@ -1,4 +1,4 @@
-package org.gluu.flowless.playground.actions;
+package org.gluu.flowless.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

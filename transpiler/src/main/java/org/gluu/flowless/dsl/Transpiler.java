@@ -9,10 +9,12 @@ import freemarker.template.TemplateExceptionHandler;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -138,7 +140,6 @@ public class Transpiler {
 
             SaplingDocument document = Visitor.document(flowContext, AuthnFlowParser.RULE_flow, flowId);
             applyValidations(document);
-            logXml(document);
             return document;
 
         } catch (RecognitionException re) {
@@ -187,8 +188,7 @@ public class Transpiler {
             }
             
             //Ensure only existing flows are referenced
-            //TODO: fix xpath expression - should account for extract ALPHANUM or DOTEXPR
-            //checkUnknownInvocation("//flow_call/call/qname/ALPHANUM/text()", flowNames, node);
+            checkUnknownInvocation(Visitor.FLOWCALL_XPATH_EXPR, flowNames, node);
 
         } catch (SaxonApiException se) {
             throw new TranspilerException("Validation failed", se);
@@ -233,21 +233,37 @@ public class Transpiler {
         return NodeModel.wrap(NodeOverNodeInfo.wrap(
                 doc.toXdmNode(processor).getUnderlyingNode()));
     }
+    
+    private void generateFromXml(String fileName, OutputStream out) throws Exception {
+        NodeModel model = NodeModel.parse(Paths.get(fileName).toFile());
+        jsGenerator.process(model, new OutputStreamWriter(out, UTF_8));       
+    }
 
     public static void main(String... args) throws Exception {
         
-        Transpiler tr = new Transpiler("main_abc", "def.abc"/*org.gluu.Main"*/, null);
+        List<String> knownFlows = null;
+        int len = args.length;
+        
+        if (len < 3) {
+            System.out.println("Expecting at least 3 params: input file path, flow ID, and flow name");
+            return;
+        } else if (len > 3) {
+
+            knownFlows = new ArrayList<>();
+            for (int i = 3; i < len; i++) {
+                knownFlows.add(args[i]);
+            }
+        }
+
+        Transpiler tr = new Transpiler(args[1], args[2], knownFlows);
         String dslCode = new String(Files.readAllBytes(Paths.get(args[0])), UTF_8);
+        
         SaplingDocument doc = tr.asXML(dslCode);
-        //System.out.println(tr.getInputs(doc));
+        tr.logXml(doc);
+        System.out.println("\nInputs: " + tr.getInputs(doc));
         System.out.println("\n" + tr.generateJS(doc));
 
-        //tr.qTest(args[0]+".xml");
-    }
-    
-    public void qTest(String fileName) throws Exception {
-        NodeModel model = NodeModel.parse(Paths.get(fileName).toFile());
-        jsGenerator.process(model, new OutputStreamWriter(System.out));       
+        //tr.generateFromXml("Sample.xml", System.out);
     }
 
 }

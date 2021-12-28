@@ -6,6 +6,7 @@ import javax.enterprise.inject.spi.CDI;
 
 import org.gluu.flowless.engine.continuation.PendingRedirectException;
 import org.gluu.flowless.engine.continuation.PendingRenderException;
+import org.gluu.flowless.engine.service.ActionService;
 import org.gluu.flowless.engine.service.FlowService;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
@@ -80,7 +81,11 @@ public class ScriptUtils {
             throws IOException {
         return managedBean(FlowService.class).prepareSubflow(qname, parentBasepath, pathOverrides);
         
-    }    
+    }
+    
+    public static String callAction(String actionClassName, String methodName, Object[] params) throws Exception {
+        return managedBean(ActionService.class).callAction(actionClassName, methodName, params);
+    }
 
     //Issue a call to this method only if the request scope is active
     public static void closeSubflow() throws IOException {

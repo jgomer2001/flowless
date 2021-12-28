@@ -1,6 +1,5 @@
-package org.gluu.flowless.engine.model;
+package org.gluu.flowless.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
@@ -11,15 +10,14 @@ public class Flow {
     private String qname;
     private String id;
 
-    @JsonProperty(value="inputs")
-    private List<String> inputNames;
+    private List<String> inputs;
 
-    public List<String> getInputNames() {
-        return inputNames;
+    public List<String> getInputs() {
+        return inputs;
     }
 
-    public void setInputNames(List<String> inputs) {
-        this.inputNames = inputs;
+    public void setInputs(List<String> inputs) {
+        this.inputs = inputs;
     }
 
     public String getQname() {

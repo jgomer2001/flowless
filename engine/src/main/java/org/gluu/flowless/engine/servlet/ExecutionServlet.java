@@ -1,6 +1,7 @@
 package org.gluu.flowless.engine.servlet;
 
 import java.io.IOException;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -8,6 +9,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.HttpMethod;
 
 import org.gluu.flowless.engine.exception.FlowCrashException;
@@ -60,7 +62,7 @@ public class ExecutionServlet extends HttpServlet {
 
         FlowStatus fstatus = flowService.getRunningFlowStatus();
         String path = webCtx.getRelativePath();
-        
+
         if (fstatus == null) {
             String flQname = flowQnameInRequest(path);
             
@@ -81,7 +83,8 @@ public class ExecutionServlet extends HttpServlet {
                     sendFinalRedirect(response, result);
                 }
             } catch (FlowCrashException e) {
-                sendFlowCrashed(response, e.getMessage());
+                //json-based clients must explicitly pass the content-type in GET requests
+                sendFlowCrashed(response, isJsonRequest(request), e.getMessage());
             }
 
         } else {
@@ -95,7 +98,8 @@ public class ExecutionServlet extends HttpServlet {
                 sendPageContents(response);
             } else {
                 //This is an attempt to GET a page which is not the current page of this flow
-                sendPageMismatch(response, expectedUrl);
+                //json-based clients must explicitly pass the content-type in GET requests
+                sendPageMismatch(response, isJsonRequest(request), expectedUrl);
             }
             
         }
@@ -122,7 +126,7 @@ public class ExecutionServlet extends HttpServlet {
             continueFlow(request, response, fstatus, false);
         } else {
             //This is an attempt to POST to a URL which is not the current page of this flow
-            sendPageMismatch(response, expectedUrl);
+            sendPageMismatch(response, isJsonRequest(request), expectedUrl);
         }
         
     }
@@ -156,7 +160,15 @@ public class ExecutionServlet extends HttpServlet {
             boolean callbackResume) throws IOException {
 
         try {
-            fstatus = flowService.continueFlow(fstatus, request.getParameterMap(), callbackResume);
+            String jsonParams;
+            if (isJsonRequest(request)) {
+                //Obtain from payload
+                jsonParams = request.getReader().lines().collect(Collectors.joining());
+            } else {
+                jsonParams = FlowUtils.toJsonString(request.getParameterMap());
+            }
+            
+            fstatus = flowService.continueFlow(fstatus, jsonParams, callbackResume);
             FlowResult result = fstatus.getResult();
 
             if (result == null) {
@@ -165,9 +177,9 @@ public class ExecutionServlet extends HttpServlet {
                 sendFinalRedirect(response, result);
             }
         } catch (FlowTimeoutException te) {
-            sendFlowTimeout(response, te.getMessage(), te.getQname());
+            sendFlowTimeout(response, isJsonRequest(request), te.getMessage(), te.getQname());
         } catch (FlowCrashException ce) {
-            sendFlowCrashed(response, ce.getMessage());
+            sendFlowCrashed(response, isJsonRequest(request), ce.getMessage());
         }
         
     }
@@ -186,6 +198,10 @@ public class ExecutionServlet extends HttpServlet {
         }
         return false;
         
+    }
+
+    private boolean isJsonRequest(HttpServletRequest request) {
+        return MediaType.APPLICATION_JSON.equals(request.getContentType());
     }
 
     /**
@@ -219,7 +235,7 @@ public class ExecutionServlet extends HttpServlet {
                 params = FlowUtils.decode(queryString);
             }
         } catch (IllegalArgumentException e) {
-            logger.error(e.getMessage(), e);
+            logger.error(e.getMessage());
             logger.warn("Unable to extract flow parameters");
         }
         return params;
@@ -258,25 +274,31 @@ public class ExecutionServlet extends HttpServlet {
         
     }
 
-    private void sendFlowTimeout(HttpServletResponse response, String message, String qname) throws IOException {
+    private void sendFlowTimeout(HttpServletResponse response, boolean jsonResponse, String message,
+            String qname) throws IOException {
 
-        page.setTemplatePath(engineConf.getInterruptionErrorPage());
+        String errorPage = engineConf.getInterruptionErrorPage();
+        page.setTemplatePath(jsonResponse ? engineConf.getJsonErrorPage(errorPage) : errorPage);
         page.setDataModel(new BasicTemplateModel(message, FlowUtils.encode(qname)));
         sendPageContents(response);
 
     }
     
-    private void sendFlowCrashed(HttpServletResponse response, String error) throws IOException {
+    private void sendFlowCrashed(HttpServletResponse response, boolean jsonResponse, String error)
+            throws IOException {
 
-        page.setTemplatePath(engineConf.getCrashErrorPage());
+        String errorPage = engineConf.getCrashErrorPage();
+        page.setTemplatePath(jsonResponse ? engineConf.getJsonErrorPage(errorPage) : errorPage);
         page.setRawDataModel(new BasicTemplateModel(error));
         sendPageContents(response);
         
     }
     
-    private void sendPageMismatch(HttpServletResponse response, String url) throws IOException {
+    private void sendPageMismatch(HttpServletResponse response, boolean jsonResponse, String url)
+            throws IOException {
         
-        page.setTemplatePath(engineConf.getPageMismatchErrorPage());
+        String errorPage = engineConf.getPageMismatchErrorPage();        
+        page.setTemplatePath(jsonResponse ? engineConf.getJsonErrorPage(errorPage) : errorPage);
         page.setDataModel(new BasicTemplateModel(url));
         sendPageContents(response);
 
@@ -291,7 +313,10 @@ public class ExecutionServlet extends HttpServlet {
 
         try {
             engineConf.getDefaultResponseHeaders().forEach((h, v) -> response.setHeader(h, v));
-            templatingService.process(path, dataModel, response.getWriter(), false);
+            String mimeType = templatingService.process(path, dataModel, response.getWriter(), false);
+            if (mimeType != null) {
+                response.setHeader(HttpHeaders.CONTENT_TYPE, mimeType);
+            }
         } catch (TemplateProcessingException e) {
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
         }

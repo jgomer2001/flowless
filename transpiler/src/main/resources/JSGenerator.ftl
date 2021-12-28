@@ -62,7 +62,7 @@ _flowCall(_basePath, <@util_url_overrides node=.node.overrides/>, <#visit .node.
 </#macro>
 
 <#macro call>
-"${.node.qname}<#if .node.ALPHANUM?size gt 0>#${.node.ALPHANUM}</#if>"
+"${.node.qname}", "<#if .node.ALPHANUM?size gt 0>${.node.ALPHANUM}</#if>"
 <@util_argslist node=.node prefix=", " />
 </#macro>
 
@@ -73,11 +73,11 @@ _redirectFetchAtCallback(${.node.STRING})
 
 <#macro finish>
 <#if .node.variable?size = 0>
-    _it = { success: ${.node.BOOL} }
+    _it = ${.node.BOOL}
 <#else>
     _it = ${.node.variable}
 </#if>
-return _it
+return _finish(_it)
 </#macro>
 
 <#macro loop>

@@ -3,6 +3,7 @@ package org.gluu.flowless.playground.actions.java;
 import com.github.javaparser.ParseProblemException;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.PackageDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
@@ -99,13 +100,22 @@ public class JavaUtil {
         List<MethodDeclaration> decls = Collections.emptyList();
         try {
             CompilationUnit cu = StaticJavaParser.parse(javaSource);
-            decls = cu.findAll(MethodDeclaration.class).stream().filter(md -> 
-                            md.isPublic() && md.isStatic() && 
-                            md.findAncestor(ClassOrInterfaceDeclaration.class)
-                                    .map(cd -> cd.getFullyQualifiedName().orElse(null))
-                                    .map(qualifiedNameCls::equals).orElse(false)
-                    )
-                    .collect(Collectors.toList());
+
+            decls = cu.findAll(MethodDeclaration.class).stream().filter(md -> {
+
+                    Node parent = md.getParentNode().orElse(null);
+                    if (ClassOrInterfaceDeclaration.class.isInstance(parent)) {
+                        ClassOrInterfaceDeclaration cd = ClassOrInterfaceDeclaration.class.cast(parent);
+
+                        if (cd.getFullyQualifiedName().map(qualifiedNameCls::equals).orElse(false)) {
+                            return (!cd.isInterface() && md.isPublic() && md.isStatic()) || 
+                                        cd.isInterface() && (md.isDefault() || md.isStatic());
+                        }
+                    }
+                    return false;
+                
+                }).collect(Collectors.toList());
+
         } catch (ParseProblemException e) {
             logger.error(e.getMessage(), e);
         }
@@ -162,17 +172,17 @@ public class JavaUtil {
         String clas = "@wt package gay; class C {} class A { class B {} }";
 
         CompilationUnit cu = StaticJavaParser.parse(
-                Paths.get("/home/jgomer/Downloads/jetty/jetty-base/at/scripts/org/gluu/flowless/dsl/Transpiler.groovy"));
-        /*MethodDeclaration decl = cu.findAll(MethodDeclaration.class).stream()
-                .filter(d -> d.isPublic() && d.isStatic())
-                    .collect(Collectors.toList()).get(0);*/
-        
+                Paths.get("/home/jgomer/Downloads/interf.java"));
+        cu.findAll(MethodDeclaration.class).stream().forEach(md -> {
+            System.out.println(md.getParentNode().map(n -> n.getClass().getName()).orElse(null));
+                });
+        /*
         cu.findAll(MethodDeclaration.class).forEach(md -> {
             String fqdn = md.findAncestor(ClassOrInterfaceDeclaration.class)
                     .map(cd -> cd.getFullyQualifiedName().orElse("!")).orElse("?");
             logger.debug("Method {} from {} is void {}", md.getDeclarationAsString(false, false, true), fqdn, md.getType().isVoidType());
         });
-        
+        */
     }
     
 }

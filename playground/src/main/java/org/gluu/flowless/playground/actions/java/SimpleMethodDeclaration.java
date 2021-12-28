@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import org.gluu.flowless.playground.actions.Action;
-import org.gluu.flowless.playground.actions.Name;
+import org.gluu.flowless.model.Name;
 
 import static com.github.javaparser.javadoc.JavadocBlockTag.Type.*;
 
@@ -31,8 +31,10 @@ public class SimpleMethodDeclaration {
 
         boolean isVoid = methodDeclaration.getType().isVoidType();
         Action a = new Action();
-        a.setId(String.format("%s#%s_%d", clsName, methodDeclaration.getName().asString(),
-                methodDeclaration.getParameters().size()));
+        
+        a.setClassName(clsName);
+        a.setMethodName(methodDeclaration.getName().asString());
+        a.setArity(methodDeclaration.getParameters().size());
         a.setReturnsVoid(isVoid);
 
         Javadoc javaDoc = methodDeclaration.getJavadoc().orElse(null);

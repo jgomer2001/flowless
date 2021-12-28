@@ -1,5 +1,6 @@
 package org.gluu.flowless.engine.service;
 
+import freemarker.core.OutputFormat;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
@@ -8,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.Writer;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Optional;
@@ -20,6 +20,8 @@ import org.gluu.flowless.engine.exception.TemplateProcessingException;
 import org.gluu.flowless.engine.model.EngineConfig;
 import org.slf4j.Logger;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 @ApplicationScoped
 public class TemplatingService {
 
@@ -28,12 +30,13 @@ public class TemplatingService {
     
     private Configuration fmConfig;
     
-    public void process(String templatePath, Object dataModel, Writer writer, boolean useClassloader)
+    public String process(String templatePath, Object dataModel, Writer writer, boolean useClassloader)
             throws TemplateProcessingException {
         try {
             //Get template, inject data, and write output
             Template t = useClassloader ? getTemplateFromClassLoader(templatePath) : getTemplate(templatePath);
             t.process(Optional.ofNullable(dataModel).orElse(Collections.emptyMap()), writer);
+            return Optional.ofNullable(t.getOutputFormat()).map(OutputFormat::getMimeType).orElse(null);
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
             throw new TemplateProcessingException(e.getMessage(), e);
