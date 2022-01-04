@@ -37,13 +37,13 @@ public class SimpleMethodDeclaration {
         a.setArity(methodDeclaration.getParameters().size());
         a.setReturnsVoid(isVoid);
 
+        String output = "";
+        List<Name> inputs = new ArrayList<>();
         Javadoc javaDoc = methodDeclaration.getJavadoc().orElse(null);
         if (javaDoc != null) {
             
             boolean deprecated = false;
             String thrws = "";
-            String output = "";
-            List<Name> inputs = new ArrayList<>();
             
             for (JavadocBlockTag block : javaDoc.getBlockTags()) {
                 switch (block.getType()) {
@@ -77,9 +77,6 @@ public class SimpleMethodDeclaration {
                 desc = "This action is based on a deprecated method!. " + desc;
             }
             
-            if (isVoid) {
-                output = "This action does not return any value";
-            }
             if (thrws.length() > 0) {
                 if (output.length() > 0) {
                     output += ". ";
@@ -90,10 +87,20 @@ public class SimpleMethodDeclaration {
             Name name = new Name();
             name.setDescription(desc);
             a.setName(name);
-            
-            a.setOutput(output);
-            a.setInputs(inputs);
         }
+
+        //Complete the undocumented inputs
+        int missing = methodDeclaration.getParameters().size() - inputs.size();
+        for (int i = 0 ; i < missing; i++) {
+            inputs.add(new Name());
+        }
+
+        if (isVoid) {
+            output = "This action does not return any value. " + output;
+        }
+
+        a.setOutput(output);
+        a.setInputs(inputs);
         
         return a;
     }

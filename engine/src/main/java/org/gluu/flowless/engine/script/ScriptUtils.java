@@ -8,6 +8,7 @@ import org.gluu.flowless.engine.continuation.PendingRedirectException;
 import org.gluu.flowless.engine.continuation.PendingRenderException;
 import org.gluu.flowless.engine.service.ActionService;
 import org.gluu.flowless.engine.service.FlowService;
+import org.gluu.util.Pair;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.NativeContinuation;
@@ -21,7 +22,7 @@ public class ScriptUtils {
     // NOTE: do not alter this method's signature so that it returns void. The returned 
     // value is simulated when the continuation is resumed: see 3rd parameter in call
     // to resumeContinuation (FlowService)
-    public static Object pauseForRender(String page, boolean allowCallbackResume, Object data)
+    public static Pair<Boolean, String> pauseForRender(String page, boolean allowCallbackResume, Object data)
             throws PendingRenderException {
         
         Context cx = Context.enter();
@@ -39,7 +40,7 @@ public class ScriptUtils {
 
     }
     
-    public static Object pauseForExternalRedirect(String url) throws PendingRedirectException {
+    public static Pair<Boolean, String> pauseForExternalRedirect(String url) throws PendingRedirectException {
         
         Context cx = Context.enter();
         try {            
@@ -83,7 +84,7 @@ public class ScriptUtils {
         
     }
     
-    public static String callAction(String actionClassName, String methodName, Object[] params) throws Exception {
+    public static Object callAction(String actionClassName, String methodName, Object[] params) throws Exception {
         return managedBean(ActionService.class).callAction(actionClassName, methodName, params);
     }
 

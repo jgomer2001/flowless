@@ -79,7 +79,7 @@ assignment: preassign expression NL ;
 
 keypair: ALPHANUM WS? ':' WS? expression ;
 
-rfac: preassign? RFAC WS STRING NL;
+rfac: preassign? RFAC WS (STRING | variable) NL;
 
 finish: FINISH WS (BOOL | variable) WS? NL ;
 

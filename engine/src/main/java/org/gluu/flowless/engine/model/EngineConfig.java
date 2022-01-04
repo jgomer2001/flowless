@@ -14,6 +14,7 @@ public class EngineConfig {
     public static final String ROOT_DIR = "/home/jgomer/Downloads/jetty/jetty-base/at";
     public static final String SCRIPTS_DIR = EngineConfig.ROOT_DIR + File.separator + "scripts";
     
+    private int maxItemsLoggedInCollections = 3;
     private int interruptionTime = 90;
     
     private String pageMismatchErrorPage = "mismatch.ftl";
@@ -78,6 +79,14 @@ public class EngineConfig {
 
     public void setDefaultResponseHeaders(Map<String, String> defaultResponseHeaders) {
         this.defaultResponseHeaders = defaultResponseHeaders;
+    }
+
+    public int getMaxItemsLoggedInCollections() {
+        return maxItemsLoggedInCollections;
+    }
+
+    public void setMaxItemsLoggedInCollections(int maxItemsLoggedInCollections) {
+        this.maxItemsLoggedInCollections = maxItemsLoggedInCollections;
     }
 
 }

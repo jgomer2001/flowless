@@ -16,6 +16,7 @@ function ${flow.@id}<#recurse flow>
 </#if>
 ) {
 let _basePath = ${.node.base.STRING}
+let _it = null
 </#macro>
 
 <#macro statement>
@@ -35,8 +36,16 @@ let _basePath = ${.node.base.STRING}
         _it = ${.node.variable}
     </#if>
 
-<@util_preassign node=.node />
-_renderReplyFetch(_basePath, ${.node.STRING}, ${hasbool?then(.node.BOOL, "false")}, _it)
+_it = _renderReplyFetch(_basePath, ${.node.STRING}, ${hasbool?then(.node.BOOL, "false")}, _it)
+<#-- See FlowService#continueFlow > scriptCtx#resumeContinuation -->
+let _it2 = JSON.parse(_it.second)
+if (_it.first.booleanValue()) return _abort(_it2)
+<#-- 
+At this point _it is an instance of org.gluu.util.Pair. This will throw
+NotSerializableException in the next RRF call if left with such value -->
+_it = null
+<@util_preassign node=.node /> _it2
+
 </#macro>
 
 <#macro action_call>
@@ -67,8 +76,13 @@ _flowCall(_basePath, <@util_url_overrides node=.node.overrides/>, <#visit .node.
 </#macro>
 
 <#macro rfac>
+<#if .node.variable?size = 0>
+    _it = ${.node.STRING}
+<#else>
+    _it = ${.node.variable}
+</#if>
     <@util_preassign node=.node />
-_redirectFetchAtCallback(${.node.STRING})
+_redirectFetchAtCallback(_it)
 </#macro>
 
 <#macro finish>
@@ -86,7 +100,7 @@ _it = ${.node.UINT}
     <#else>
 _it = ${.node.variable}
     </#if>
-
+_ensureNumber(_it, "Number of iterations passed to Repeat is invalid")
 for (let count = 0; count < _it; count++) {
 
     <#list .node.statement as st>

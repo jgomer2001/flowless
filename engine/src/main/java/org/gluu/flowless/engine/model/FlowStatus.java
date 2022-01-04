@@ -11,18 +11,18 @@ public class FlowStatus {
     private String qname;
     private String templatePath;
     private long startedAt;
-    private Map<String, Object> templateDataModel;
+    private Object templateDataModel;
     private LinkedList<ParentFlowData> parentsData = new LinkedList<>();
     private String externalRedirectUrl;
     private boolean allowCallbackResume;
     
     private FlowResult result;
 
-    public Map<String, Object> getTemplateDataModel() {
+    public Object getTemplateDataModel() {
         return templateDataModel;
     }
 
-    public void setTemplateDataModel(Map<String, Object> templateDataModel) {
+    public void setTemplateDataModel(Object templateDataModel) {
         this.templateDataModel = templateDataModel;
     }
 

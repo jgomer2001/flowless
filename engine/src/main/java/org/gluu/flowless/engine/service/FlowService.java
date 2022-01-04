@@ -133,8 +133,8 @@ public class FlowService {
         FlowUtils.terminateFlow(sessionId);
     }
     
-    public FlowStatus continueFlow(FlowStatus currentFlowSt, String jsonParameters,
-            boolean callbackResume) throws FlowCrashException, FlowTimeoutException {
+    public FlowStatus continueFlow(FlowStatus currentFlowSt, String jsonParameters, boolean callbackResume,
+            boolean abortSubflow) throws FlowCrashException, FlowTimeoutException {
         
         FlowStatus status = null;
         try {            
@@ -154,7 +154,7 @@ public class FlowService {
                 logger.debug("Resuming flow");
                 parentFlowData = currentFlowSt.getParentsData().peekLast();
                 NativeObject result = (NativeObject) scriptCtx.resumeContinuation(pcont.getSecond(), 
-                        globalScope, jsonParameters);
+                        globalScope, new Pair<>(abortSubflow, jsonParameters));
 
                 status = new FlowStatus();
                 status.setResult(flowResultFrom(result));
@@ -168,7 +168,6 @@ public class FlowService {
                 throw te;
             } catch (Exception e) {
                 terminateFlow();
-                logger.error(e.getMessage(), e);
                 throw new FlowCrashException("Error executing flow's code", e);
             }
         } catch (IOException ie) {
@@ -255,7 +254,8 @@ public class FlowService {
         } else {
             status.getParentsData().offer(parentFlowData);
         }
-logger.debug("====!{}", status.getParentsData().size());        
+        //TODO: log stmt
+        logger.debug("====!{}", status.getParentsData().size());        
         status.setAllowCallbackResume(pe.isAllowCallbackResume());
         //Save the state
         FlowUtils.saveState(sessionId, status, pe.getContinuation(), globalScope);

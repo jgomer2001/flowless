@@ -56,12 +56,23 @@ public class Method {
 
     @Override
     public boolean equals(Object other) {
-        return Method.class.isInstance(other) && id.equals(((Method) other).getId());
+        
+        if (Method.class.isInstance(other)) {
+            String thisId = getId();
+            String otherId = ((Method) other).getId();
+            
+            if (thisId == null) {
+                return otherId == null;
+            }
+            return thisId.equals(otherId);
+        }
+        return false;
+        
     }
     
     @Override
     public int hashCode() {
-        return Optional.ofNullable(id).map(String::hashCode).orElse(0);
+        return Optional.ofNullable(getId()).map(String::hashCode).orElse(0);
     }
 
 }

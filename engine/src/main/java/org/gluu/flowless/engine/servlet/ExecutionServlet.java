@@ -30,13 +30,15 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 @WebServlet(urlPatterns = {
     "*" + ExecutionServlet.URL_SUFFIX,
-    ExecutionServlet.CALLBACK_PATH
+    ExecutionServlet.CALLBACK_PATH,
+    ExecutionServlet.ABORT_PATH
 })
 public class ExecutionServlet extends HttpServlet {
     
     public static final String URL_SUFFIX = ".fls"; 
     public static final String URL_PREFIX = "/fl/";
     public static final String CALLBACK_PATH = URL_PREFIX + "callback";
+    public static final String ABORT_PATH = URL_PREFIX + "abort";
 
     @Inject
     private Logger logger;
@@ -123,7 +125,9 @@ public class ExecutionServlet extends HttpServlet {
         String expectedUrl = getExpectedUrl(fstatus);
 
         if (path.equals(expectedUrl)) {
-            continueFlow(request, response, fstatus, false);
+            continueFlow(request, response, fstatus, false, false);
+        } else if (path.equals(ABORT_PATH)) {
+            continueFlow(request, response, fstatus, false, true);
         } else {
             //This is an attempt to POST to a URL which is not the current page of this flow
             sendPageMismatch(response, isJsonRequest(request), expectedUrl);
@@ -157,7 +161,7 @@ public class ExecutionServlet extends HttpServlet {
     }
     
     private void continueFlow(HttpServletRequest request, HttpServletResponse response, FlowStatus fstatus,
-            boolean callbackResume) throws IOException {
+            boolean callbackResume, boolean abortSubflow) throws IOException {
 
         try {
             String jsonParams;
@@ -168,7 +172,7 @@ public class ExecutionServlet extends HttpServlet {
                 jsonParams = FlowUtils.toJsonString(request.getParameterMap());
             }
             
-            fstatus = flowService.continueFlow(fstatus, jsonParams, callbackResume);
+            fstatus = flowService.continueFlow(fstatus, jsonParams, callbackResume, abortSubflow);
             FlowResult result = fstatus.getResult();
 
             if (result == null) {
@@ -179,6 +183,7 @@ public class ExecutionServlet extends HttpServlet {
         } catch (FlowTimeoutException te) {
             sendFlowTimeout(response, isJsonRequest(request), te.getMessage(), te.getQname());
         } catch (FlowCrashException ce) {
+            logger.error(ce.getMessage(), ce);
             sendFlowCrashed(response, isJsonRequest(request), ce.getMessage());
         }
         
@@ -189,7 +194,7 @@ public class ExecutionServlet extends HttpServlet {
 
         if (path.equals(CALLBACK_PATH)) {
             if (fstatus.isAllowCallbackResume()) {
-                continueFlow(request, response, fstatus, true);
+                continueFlow(request, response, fstatus, true, false);
             } else {
                 logger.warn("Unexpected incoming response at flow callback endpoint");
                 sendNotFound(response);

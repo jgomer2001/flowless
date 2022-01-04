@@ -1,10 +1,18 @@
 package org.gluu.flowless.engine.script;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
+import javax.enterprise.inject.spi.CDI;
 
+import org.gluu.flowless.engine.model.EngineConfig;
 import org.gluu.util.Pair;
+import org.mozilla.javascript.NativeObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +21,10 @@ public class LogUtils {
     private static final Logger LOG = LoggerFactory.getLogger(LogUtils.class);
     //MUST be a single character string
     private static final String PLACEHOLDER = "%";
+    
+    //TODO: use oxcore-util
+    private static final int MAX_ITERABLE_ITEMS = CDI.current().select(EngineConfig.class).get()
+            .getMaxItemsLoggedInCollections();
     
     private enum LogLevel { 
         ERROR, WARN, INFO, DEBUG, TRACE;
@@ -46,16 +58,13 @@ public class LogUtils {
             sfirst = asString(first) + getFormatString("", nargs).getFirst();
         }
         
-        String[] args = new String[nargs + dummyArgs];
-        //TODO: remove traces
+        Object[] args = new String[nargs + dummyArgs];
         for (int i = 0; i < nargs; i++) {
             args[i] = asString(rest[i + 1]);
-            LOG.trace(Optional.ofNullable(rest[i + 1]).map(o -> o.getClass().getName()).orElse("null"));
         }
         Arrays.fill(args, nargs, args.length, "");
         String result = String.format(sfirst, args);
         
-        //LOG.trace(sfirst); 
         if (level == null) {
             level = LogLevel.INFO;
         }
@@ -74,8 +83,7 @@ public class LogUtils {
                 break;
             case TRACE:
                 LOG.trace(result);
-                break;           
-            
+                break;
         }
         
     }
@@ -126,10 +134,60 @@ public class LogUtils {
         return new Pair<>(tmp, dummyArgs);
         
     }
-
+    
+    private static String subCollectionAsString(Collection<?> col) {
+        
+        int len = col.size();
+        int count = Math.min(len, MAX_ITERABLE_ITEMS);
+        Iterator iterator = col.iterator();
+        StringBuilder sb = new StringBuilder("[");
+        
+        if (count > 0) {
+            for (int i = 0; i < count; i++) {
+                sb.append(asString(iterator.next())).append(", ");
+            }
+            if (len > count) {
+                sb.append("...").append(len - count).append(" more");
+            } else {
+                sb.deleteCharAt(sb.length() - 1);
+                sb.deleteCharAt(sb.length() - 1);
+            }
+        }
+        return sb.append("]").toString();
+        
+    }
 
     private static String asString(Object obj) {
-        return Optional.ofNullable(obj).map(Object::toString).orElse("null");
+        
+        if (obj == null) return "null";
+        
+        //JS-native numeric values always come as doubles; make them look like integers if that's the case
+        if (obj.getClass().equals(Double.class)) {
+            Double d = (Double) obj;
+            if (Math.floor(d) == d && d >= 1.0*Integer.MIN_VALUE && d <= 1.0*Integer.MAX_VALUE) {
+                return Integer.toString(d.intValue());
+            }
+        } else if (obj.getClass().isArray()) {
+            
+            List<Object> list = new ArrayList<>();
+            for (int i = 0; i < MAX_ITERABLE_ITEMS; i++) {
+                try {
+                    list.add(Array.get(obj, i));
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    break;
+                }
+            }
+            return subCollectionAsString(list);
+            
+        } else if (Collection.class.isInstance(obj)) {
+            return subCollectionAsString((Collection) obj);  
+            
+        } else if (NativeObject.class.isInstance(obj)) {
+            //Avoid the undesirable [object Object] JS way of printing objects
+            return ((Map) obj).toString();
+        }
+        return obj.toString();
+
     }
     
 }

@@ -24,7 +24,7 @@ public class Visitor {
     public static final String FLOWNAME_XPATH_EXPR = "/flow/header/qname/text()";
     public static final String FLOWCALL_XPATH_EXPR = "//flow_call/call/qname/text()";
 
-    private static Logger logger = LoggerFactory.getLogger(Visitor.class);
+    private static final Logger logger = LoggerFactory.getLogger(Visitor.class);
     private static final Set<Integer> INCLUDE_SYMBOLS;
     private static final Set<Integer> RULES_AS_TEXT;
     private static final Set<String> JS_KEYWORDS;
@@ -46,17 +46,34 @@ public class Visitor {
         };
         
         INCLUDE_SYMBOLS = new HashSet(Arrays.asList(includeSymbols));
-       
-        // Based on https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#keywords
+        
+        //The following cannot be used as variable names in DSL code
         String[] javascriptKeywords = new String[] {
+            // Based on https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#keywords
             "break", "case", "catch", "class", "const", "continue", 
             "debugger", "default", "delete", "do", "else", "export", "extends", 
             "finally", "for", "function", "if", "import", "in", "instanceof", "new", 
             "return", "super", "switch", "this", "throw", "try", "typeof", 
             "var", "void", "while", "with", "yield",
             "enum", "await", "let",
-            //"special" values
-            "undefined", "NaN", "Infinity"
+
+            // Prevent arbitrary access to Java classes from script code, see
+            // http://web.archive.org/web/20210304081342/https://developer.mozilla.org/en-US/docs/Scripting_Java
+            "Packages",
+            
+            // See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects
+            // function names not included because they cannot be invoked from DSL code
+            // Control abstraction objects, Reflection, Internationalization, and WebAssembly
+            // not yet supported in Rhino
+            "Infinity", "NaN", "undefined", "globalThis",
+            "Object", "Function", "Boolean", "Symbol",
+            "Error", "AggregateError", "EvalError", "InternalError", "RangeError",
+            "ReferenceError", "SyntaxError", "TypeError", "URIError",
+            "Number", "BigInt", "Math", "Date", "String", "RegExp",
+            "Array", "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array",
+            "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array",
+            "Map", "Set", "WeakMap", "WeakSet",
+            "ArrayBuffer", "SharedArrayBuffer", "Atomics", "DataView", "JSON", "arguments"
         };
         
         JS_KEYWORDS = new HashSet(Arrays.asList(javascriptKeywords));
