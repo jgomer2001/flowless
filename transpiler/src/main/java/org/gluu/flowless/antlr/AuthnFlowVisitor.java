@@ -107,6 +107,12 @@ public interface AuthnFlowVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitCall(AuthnFlowParser.CallContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#call_subject}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitCall_subject(AuthnFlowParser.Call_subjectContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#argument}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

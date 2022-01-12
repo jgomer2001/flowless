@@ -1,11 +1,13 @@
 package org.gluu.flowless.engine.script;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import javax.enterprise.inject.spi.CDI;
 
 import org.gluu.flowless.engine.continuation.PendingRedirectException;
 import org.gluu.flowless.engine.continuation.PendingRenderException;
+import org.gluu.flowless.engine.misc.PrimitiveUtils;
 import org.gluu.flowless.engine.service.ActionService;
 import org.gluu.flowless.engine.service.FlowService;
 import org.gluu.util.Pair;
@@ -64,13 +66,28 @@ public class ScriptUtils {
         if (a == b) return true;
         if (!anull && !bnull) {
             
-            Class aclass = a.getClass();
-            Class bclass = b.getClass();
-            if (!aclass.equals(bclass)) {
-                LOG.warn("trying to compare instances of {} and {}", aclass.getName(), bclass.getName());
+            Class aClass = a.getClass();
+            Class bClass = b.getClass();
+            if (!aClass.equals(bClass)) {
                 
-            } else if (aclass.equals(String.class) || aclass.isPrimitive()) {
+                //Native JS numbers land as double here
+                if (aClass.equals(Double.class) && Number.class.isInstance(b)) {
+                    return a.equals(((Number) b).doubleValue());
+                    
+                } else if (bClass.equals(Double.class) && Number.class.isInstance(a)) {
+                    return b.equals(((Number) a).doubleValue());
+                }
+                
+                LOG.warn("Trying to compare instances of {} and {}", aClass.getName(), bClass.getName());
+                
+                LogUtils.log("@w Equality check between % and % is not available",
+                        simpleName(aClass), simpleName(bClass));
+                
+            } else if (aClass.equals(String.class) || PrimitiveUtils.isPrimitive(aClass, true)) {
                 return a.equals(b);
+            } else {
+                LogUtils.log("@w Equality check is only effective for numbers, strings, and boolean values. " + 
+                        "It returns false in other cases");
             }
         }
         return false;
@@ -91,6 +108,20 @@ public class ScriptUtils {
     //Issue a call to this method only if the request scope is active
     public static void closeSubflow() throws IOException {
         managedBean(FlowService.class).closeSubflow();
+    }
+    
+    private static String simpleName(Class<?> cls) {
+
+        String name;
+        if (List.class.isAssignableFrom(cls)) {
+            name = "list";
+        } else if (Map.class.isAssignableFrom(cls)) {
+            name = "map";
+        } else {
+            name= cls.getSimpleName();
+        }
+        return name;
+        
     }
     
     private static <T> T managedBean(Class<T> cls) {

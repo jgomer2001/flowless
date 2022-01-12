@@ -1,7 +1,8 @@
 <#ftl output_format="JavaScript">
 <#--
-- This templates generates valid JS code
-- Functions called here are implemented in util.js
+- This templates generates valid JS code that should be run in non-strict mode
+- Only one function is created and must not contain inner functions
+- Any functions called here are implemented in file util.js
 - An initial underscore in variables and function names prevent flow writers to use variables with the same names in their DSL code
 -->
 
@@ -15,8 +16,10 @@ function ${flow.@id}<#recurse flow>
     ${.node.inputs.short_var?join(", ")}
 </#if>
 ) {
-let _basePath = ${.node.base.STRING}
-let _it = null
+const _basePath = ${.node.base.STRING}
+let _it = null, _it2 = null
+<#-- repit is accessible to flow writers (it's not underscore-prefixed). It allows to access the status of loops -->
+let repit = []
 </#macro>
 
 <#macro statement>
@@ -27,7 +30,7 @@ let _it = null
 </#macro>
 
 <#macro rrf_call>
-    <#assign hasbool = .node.BOOL?size gt 0>
+    <#local hasbool = .node.BOOL?size gt 0>
     
     <#if .node.statusr_block?size gt 0><#visit .node.statusr_block></#if>    
     <#if .node.variable?size = 0>
@@ -36,31 +39,28 @@ let _it = null
         _it = ${.node.variable}
     </#if>
 
-_it = _renderReplyFetch(_basePath, ${.node.STRING}, ${hasbool?then(.node.BOOL, "false")}, _it)
-<#-- See FlowService#continueFlow > scriptCtx#resumeContinuation -->
-let _it2 = JSON.parse(_it.second)
-if (_it.first.booleanValue()) return _abort(_it2)
-<#-- 
-At this point _it is an instance of org.gluu.util.Pair. This will throw
-NotSerializableException in the next RRF call if left with such value -->
-_it = null
-<@util_preassign node=.node /> _it2
+    _it = _renderReplyFetch(_basePath, ${.node.STRING}, ${hasbool?then(.node.BOOL, "false")}, _it)
+    <#-- See FlowService#continueFlow > scriptCtx#resumeContinuation -->
+    _it2 = JSON.parse(_it.second)
+    if (_it.first.booleanValue()) return _abort(_it2)
 
+    <@util_preassign node=.node /> _it2
+    <#-- Clear temp variables to make serialization lighter (in the next RRF call) -->
+    _it = null
+    _it2 = null
 </#macro>
 
 <#macro action_call>
-    <#assign catch=.node.preassign_catch?size gt 0>
+    <#local catch=.node.preassign_catch?size gt 0>
 
     <#if catch>
-${.node.preassign_catch.short_var} = null;
 try {
     </#if>
-    <@util_preassign node=.node />
+    <@util_preassign node=.node /> _actionCall(<#visit .node.call>)
 
-    _actionCall(<#visit .node.call>)
     <#if catch>
-} catch (e) {
-     ${.node.preassign_catch.short_var} = e
+} catch (_e) {
+     var ${.node.preassign_catch.short_var} = _e
 }
     </#if>
 </#macro>
@@ -71,7 +71,13 @@ _flowCall(_basePath, <@util_url_overrides node=.node.overrides/>, <#visit .node.
 </#macro>
 
 <#macro call>
-"${.node.qname}", "<#if .node.ALPHANUM?size gt 0>${.node.ALPHANUM}</#if>"
+
+<#if .node.variable?size gt 0>
+    ${.node.variable}, null
+<#else>
+    "${.node.call_subject.qname}", "<#if .node.call_subject.ALPHANUM?size gt 0>${.node.call_subject.ALPHANUM}</#if>"
+</#if>
+
 <@util_argslist node=.node prefix=", " />
 </#macro>
 
@@ -81,8 +87,8 @@ _flowCall(_basePath, <@util_url_overrides node=.node.overrides/>, <#visit .node.
 <#else>
     _it = ${.node.variable}
 </#if>
-    <@util_preassign node=.node />
-_redirectFetchAtCallback(_it)
+    <@util_preassign node=.node /> _redirectFetchAtCallback(_it)
+    _it = null
 </#macro>
 
 <#macro finish>
@@ -101,14 +107,24 @@ _it = ${.node.UINT}
 _it = ${.node.variable}
     </#if>
 _ensureNumber(_it, "Number of iterations passed to Repeat is invalid")
-for (let count = 0; count < _it; count++) {
+
+<@util_preassign node=.node /> null
+repit.push(0)
+for (let _times = _it; _times > 0; _times--) {
+    repit[repit.length - 1]++
 
     <#list .node.statement as st>
         <#recurse st>
     </#list>
 
-    <#visit .node.quit_stmt>
+    <#if .node.quit_stmt?size gt 0><#visit .node.quit_stmt></#if>
 }
+_it = repit.pop()
+
+<#if .node.preassign?size gt 0>
+${.node.preassign.variable} = _it
+</#if>
+
 </#macro>
 
 <#macro ifelse>
@@ -156,8 +172,8 @@ _log(<@util_argslist node=.node prefix="" />)
 </#macro>
 
 <#macro statusr_block>
-    <#assign isuint = .node.statusr_allow.variable?size = 0>
-    <#assign isequality = statusr_until.boolean_expr.NOT?size gt 0>
+    <#local isuint = .node.statusr_allow.variable?size = 0>
+    <#local isequality = statusr_until.boolean_expr.NOT?size gt 0>
 
 _allowStatusRequest(${isuint?then(.node.statusr_allow.UINT!"", .node.statusr_allow.variable!"")},
     "${.node.statusr_until.boolean_expr.simple_expr[0]!""}", "${.node.statusr_until.boolean_expr.simple_expr[1]!""}",
@@ -174,11 +190,11 @@ else {
 
 <#macro util_preassign node>
 <#if node.preassign?size = 0>
-    <#if node.preassign_catch?size gt 0>
-${node.preassign_catch.variable} =
+    <#if node.preassign_catch?size gt 0 && node.preassign_catch.variable?size gt 0>
+var ${node.preassign_catch.variable} =
     </#if>
 <#else>
-${node.preassign.variable} =
+var ${node.preassign.variable} =
 </#if>
 </#macro>
 

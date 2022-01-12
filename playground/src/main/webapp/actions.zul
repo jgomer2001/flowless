@@ -145,7 +145,7 @@
                 Note only the following are allowed:
                 <ul>
                     <li>public static methods from public classes</li>
-                    <li>static or default methods from public interfaces</li>
+                    <li>static methods from public interfaces</li>
                 </ul>  
             </p>
             <hr />

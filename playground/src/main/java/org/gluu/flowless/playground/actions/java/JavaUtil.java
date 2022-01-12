@@ -108,8 +108,7 @@ public class JavaUtil {
                         ClassOrInterfaceDeclaration cd = ClassOrInterfaceDeclaration.class.cast(parent);
 
                         if (cd.getFullyQualifiedName().map(qualifiedNameCls::equals).orElse(false)) {
-                            return (!cd.isInterface() && md.isPublic() && md.isStatic()) || 
-                                        cd.isInterface() && (md.isDefault() || md.isStatic());
+                            return md.isStatic() && (cd.isInterface() || md.isPublic());
                         }
                     }
                     return false;

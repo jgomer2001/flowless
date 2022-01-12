@@ -208,6 +208,18 @@ public class AuthnFlowBaseListener implements AuthnFlowListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterCall_subject(AuthnFlowParser.Call_subjectContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitCall_subject(AuthnFlowParser.Call_subjectContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterArgument(AuthnFlowParser.ArgumentContext ctx) { }
 	/**
 	 * {@inheritDoc}

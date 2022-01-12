@@ -1,3 +1,3 @@
 # Flowless (transpiler)
 
-Generates Javascript code (runnable in Rhino Engine) based on a flow description written in flowless DSL.  
+Generates code runnable through Mozilla Rhino based on a flow description written in Agama DSL.  

@@ -85,6 +85,7 @@ public class ExecutionServlet extends HttpServlet {
                     sendFinalRedirect(response, result);
                 }
             } catch (FlowCrashException e) {
+                logger.error(e.getMessage(), e);
                 //json-based clients must explicitly pass the content-type in GET requests
                 sendFlowCrashed(response, isJsonRequest(request), e.getMessage());
             }

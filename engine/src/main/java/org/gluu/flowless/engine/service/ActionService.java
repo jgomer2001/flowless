@@ -103,7 +103,7 @@ public class ActionService {
             }
             
             Class<?> argClass = arg.getClass();
-            
+
             //Try to apply cheaper conversions first (in comparison to mapper-based conversion)
             Boolean primCompat = PrimitiveUtils.compatible(argClass, paramType);
             if (primCompat != null) {

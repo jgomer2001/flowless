@@ -32,10 +32,12 @@ import org.gluu.flowless.engine.model.FlowStatus;
 import org.gluu.flowless.engine.model.ParentFlowData;
 import org.gluu.util.Pair;
 import org.mozilla.javascript.Context;
+import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.ContinuationPending;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.NativeContinuation;
 import org.mozilla.javascript.NativeObject;
+import org.mozilla.javascript.RhinoException;
 import org.mozilla.javascript.Scriptable;
 import org.slf4j.Logger;
 
@@ -112,9 +114,7 @@ public class FlowService {
 
             } catch (Exception e){
                 terminateFlow();
-                //TODO: what kind of exceptions can a rhino script throw?
-                logger.error(e.getMessage(), e);
-                throw new FlowCrashException("Error executing flow's code", e);
+                makeCrashException(e);
             }
             
             //TODO: review exception handling, enable polling if needed
@@ -168,7 +168,7 @@ public class FlowService {
                 throw te;
             } catch (Exception e) {
                 terminateFlow();
-                throw new FlowCrashException("Error executing flow's code", e);
+                makeCrashException(e);
             }
         } catch (IOException ie) {
             throw new FlowCrashException(ie.getMessage(), ie);
@@ -307,6 +307,22 @@ public class FlowService {
         return params;
 
     }
+    
+    private void makeCrashException(Exception e) throws FlowCrashException {
+
+        String msg;
+        if (e instanceof RhinoException) {            
+            RhinoException re = (RhinoException) e;
+            msg = re.details();
+            logger.error(msg + re.getScriptStackTrace());
+            //logger.error(re.getMessage());
+            msg = "Error executing flow's code - " + msg;
+        } else 
+            msg = e.getMessage();
+        
+        throw new FlowCrashException(msg, e);
+        
+    }
 
     /**
      * @param result
@@ -332,8 +348,21 @@ public class FlowService {
     
     @PostConstruct
     private void init() {
+        
+        class FlowlessContextFactory extends ContextFactory {
+            
+            @Override
+            protected boolean hasFeature(Context cx, int featureIndex) {
+                switch (featureIndex) {
+                    case Context.FEATURE_ENABLE_JAVA_MAP_ACCESS: return true;
+                }
+                return super.hasFeature(cx, featureIndex);
+            }
+        }
+        
+        scriptCtx = new FlowlessContextFactory().enterContext();
         sessionId = request.getSession().getId();
-        scriptCtx = Context.enter();
+
     }
 
     @PreDestroy

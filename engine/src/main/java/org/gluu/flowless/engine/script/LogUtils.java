@@ -104,7 +104,8 @@ public class LogUtils {
             ).findFirst().orElse(null);
 
             if (level != null) {
-                newFirst = first.substring(1 + level.getValue().length() + suffix.length());
+                int levLen = first.substring(2).startsWith(suffix) ? 1 : level.getValue().length();
+                newFirst = first.substring(1 + levLen + suffix.length());
             }
         }
         
@@ -164,8 +165,8 @@ public class LogUtils {
         //JS-native numeric values always come as doubles; make them look like integers if that's the case
         if (obj.getClass().equals(Double.class)) {
             Double d = (Double) obj;
-            if (Math.floor(d) == d && d >= 1.0*Integer.MIN_VALUE && d <= 1.0*Integer.MAX_VALUE) {
-                return Integer.toString(d.intValue());
+            if (Math.floor(d) == d && d >= 1.0*Long.MIN_VALUE && d <= 1.0*Long.MAX_VALUE) {
+                return Long.toString(d.longValue());
             }
         } else if (obj.getClass().isArray()) {
             
@@ -183,6 +184,7 @@ public class LogUtils {
             return subCollectionAsString((Collection) obj);  
             
         } else if (NativeObject.class.isInstance(obj)) {
+            //TODO: not working
             //Avoid the undesirable [object Object] JS way of printing objects
             return ((Map) obj).toString();
         }

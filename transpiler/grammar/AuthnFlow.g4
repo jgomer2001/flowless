@@ -42,11 +42,11 @@ inputs: FLOWINPUTS (WS short_var)+ WS? NL ;
 
 short_var: ALPHANUM ;
 
-statement: (flow_call | action_call | rrf_call | assignment | log | rfac | finish | ifelse | choice | loop) ;
+statement: flow_call | action_call | rrf_call | assignment | log | rfac | finish | ifelse | choice | loop ;
 
 preassign: variable WS? EQ WS? ;
 
-preassign_catch: variable WS? '|' WS? short_var WS? EQ WS? ;
+preassign_catch: variable? WS? '|' WS? short_var WS? EQ WS? ;
 
 variable: short_var | IDXEXPR | DOTEXPR | DOTIDXEXPR ;
 
@@ -61,7 +61,9 @@ rrf_call: preassign? RRFCALL WS STRING (WS variable)? (WS BOOL)? WS? (statusr_bl
 
 log: LOG argument+ WS? NL ;
 
-call: qname ('#' ALPHANUM)? argument* WS? ;
+call: ('$' variable | call_subject) argument* WS? ;
+
+call_subject: qname ('#' ALPHANUM)?  ;
 
 argument: WS simple_expr ;
 
@@ -97,7 +99,7 @@ boolean_expr: simple_expr WS IS WS (NOT WS)? simple_expr ;
 
 elseblock: OTHERWISE WS? INDENT statement+ DEDENT ;
 
-loop: REPEAT WS (variable | UINT) WS MAXTIMES WS? INDENT statement+ quit_stmt? DEDENT ;
+loop: preassign? REPEAT WS (variable | UINT) WS MAXTIMES WS? INDENT statement+ quit_stmt? DEDENT ;
 
 quit_stmt: QUIT WS caseof WS? NL elseblock? ;
 
@@ -114,8 +116,8 @@ statusr_until: UNTIL WS boolean_expr WS? NL;
  */
 
 fragment DIGIT : [0-9] ;
-fragment CH : [a-zA-Z_] ;
-fragment ALNUM : CH (CH | DIGIT)* ;
+fragment CH : [a-zA-Z] ;
+fragment ALNUM : CH ('_' | CH | DIGIT)* ;
 fragment SPACES: [\t ]+ ;
 fragment COMMA: ',' ;
 
@@ -171,7 +173,7 @@ SECS: 'seconds' ;
 
 TO: 'to' ;
 
-MAXTIMES: 'times at most' ;
+MAXTIMES: 'times max' ;
 
 EQ: '=' ;
 

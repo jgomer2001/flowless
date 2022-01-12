@@ -168,6 +168,16 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 */
 	void exitCall(AuthnFlowParser.CallContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#call_subject}.
+	 * @param ctx the parse tree
+	 */
+	void enterCall_subject(AuthnFlowParser.Call_subjectContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#call_subject}.
+	 * @param ctx the parse tree
+	 */
+	void exitCall_subject(AuthnFlowParser.Call_subjectContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#argument}.
 	 * @param ctx the parse tree
 	 */

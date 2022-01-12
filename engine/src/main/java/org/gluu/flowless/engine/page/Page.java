@@ -15,6 +15,7 @@ import org.gluu.flowless.engine.service.WebContext;
 public class Page {
     
     private static final String WEB_CTX_KEY = "webCtx";
+    private static final String LABELS_KEY = "msgs";
     
     @Inject
     private WebContext webContext;
@@ -24,6 +25,7 @@ public class Page {
     
     private String templatePath;
     private Map<String, Object> dataModel;
+    private Labels labels;
     private Object rawModel;
 
     public String getTemplatePath() {
@@ -39,6 +41,7 @@ public class Page {
         if (rawModel == null) {
             if (dataModel != null) {
                 dataModel.putIfAbsent(WEB_CTX_KEY, webContext);
+                dataModel.putIfAbsent(LABELS_KEY, labels);
                 return dataModel;
             } else return new Object();
         } else return rawModel;
@@ -75,6 +78,7 @@ public class Page {
     @PostConstruct
     private void init() {
         dataModel = new HashMap<>();
+        labels = new Labels();
     }
     
 }

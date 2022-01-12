@@ -63,8 +63,8 @@ public class Visitor {
             
             // See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects
             // function names not included because they cannot be invoked from DSL code
-            // Control abstraction objects, Reflection, Internationalization, and WebAssembly
-            // not yet supported in Rhino
+            // Control abstraction objects (except Promise), Reflection, Internationalization, 
+            // and WebAssembly not yet supported in Rhino
             "Infinity", "NaN", "undefined", "globalThis",
             "Object", "Function", "Boolean", "Symbol",
             "Error", "AggregateError", "EvalError", "InternalError", "RangeError",
@@ -73,7 +73,8 @@ public class Visitor {
             "Array", "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array",
             "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array",
             "Map", "Set", "WeakMap", "WeakSet",
-            "ArrayBuffer", "SharedArrayBuffer", "Atomics", "DataView", "JSON", "arguments"
+            "ArrayBuffer", "SharedArrayBuffer", "Atomics", "DataView", "JSON",
+            "Promise", "arguments"
         };
         
         JS_KEYWORDS = new HashSet(Arrays.asList(javascriptKeywords));
