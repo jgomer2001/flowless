@@ -53,18 +53,16 @@ public class Transpiler {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
     private String flowId;
-    private String flowName;
     private Set<String> flowNames;
 
     private Processor processor;
     private XPathCompiler xpathCompiler;
     private Template jsGenerator;
 
-    public Transpiler(String flowId, String flowName, List<String> flowNames)
+    public Transpiler(String flowId, List<String> flowNames)
             throws TranspilerException {
 
         this.flowId = flowId;
-        this.flowName = flowName;
         this.flowNames = Optional.ofNullable(flowNames).map(HashSet::new).orElse(null);
         
         if (Stream.of(flowNames, flowId).allMatch(Objects::nonNull)) {
@@ -176,17 +174,6 @@ public class Transpiler {
         try {
             XdmNode node = doc.toXdmNode(processor);
             
-            if (flowName != null) {                
-                //validate flow name is consistent
-                XdmItem itemName = xpathCompiler.evaluateSingle(Visitor.FLOWNAME_XPATH_EXPR, node);
-                String name = Optional.ofNullable(itemName).map(XdmItem::getStringValue).orElse("");  
-                
-                if (!flowName.equals(name)) {
-                    throw new TranspilerException(
-                        String.format("Expecting flow name '%s', but '%s' was found", flowName, name));
-                }
-            }
-            
             //Ensure only existing flows are referenced
             checkUnknownInvocation(Visitor.FLOWCALL_XPATH_EXPR, flowNames, node);
 
@@ -244,10 +231,10 @@ public class Transpiler {
         List<String> knownFlows = null;
         int len = args.length;
         
-        if (len < 3) {
-            System.out.println("Expecting at least 3 params: input file path, flow ID, and flow name");
+        if (len < 2) {
+            System.err.println("Expecting at least 2 params: input file path and flow ID");
             return;
-        } else if (len > 3) {
+        } else if (len > 2) {
 
             knownFlows = new ArrayList<>();
             for (int i = 3; i < len; i++) {
@@ -255,7 +242,7 @@ public class Transpiler {
             }
         }
 
-        Transpiler tr = new Transpiler(args[1], args[2], knownFlows);
+        Transpiler tr = new Transpiler(args[1], knownFlows);
         String dslCode = new String(Files.readAllBytes(Paths.get(args[0])), UTF_8);
         
         SaplingDocument doc = tr.asXML(dslCode);

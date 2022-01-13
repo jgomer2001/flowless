@@ -1,0 +1,12 @@
+{
+	"qname": "org.gluu.flow2",
+	"id": "flow2",
+	"displayName": "Say something flow",
+	"author": "Jose",
+	"timestamp": 1623373644706,
+	"editable": true,
+	
+	"description": "Asks you to say something and fails if you say nothing",
+	"inputs": [ "val" ]
+	
+}

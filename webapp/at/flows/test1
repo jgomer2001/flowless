@@ -1,0 +1,17 @@
+Flow test1 
+    Basepath "t1" 
+ 
+data = RRF "index.ftl"
+name = data.name
+Log "Hey" name
+
+params = { nick: name, 
+    instruments: [ "piano", "bass guitar", "electric guitar", "drums" ]}
+data = RRF "test/inst.ftl" params
+
+When data.favorite is not "drums" or name is "jose"
+    Finish true
+Otherwise
+    Log "Bye, bye" name
+    output = { success: false, error: "We decided not to let you in ☺, period." }
+    Finish output

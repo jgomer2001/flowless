@@ -19,7 +19,7 @@ import static org.gluu.flowless.playground.flows.FlowsVM.FLOWS_DIR;
 
 public class FlowDetailVM {
     
-    private static final String TEST_SERVER_FLOWS_ROOT = "http://localhost:8080/oxauth/fl/";
+    private static final String TEST_SERVER_FLOWS_ROOT = "http://localhost:8080/webapp/fl/";
 
     private final Logger logger = LoggerFactory.getLogger(getClass()); 
     

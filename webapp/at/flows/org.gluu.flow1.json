@@ -1,0 +1,12 @@
+{
+	"qname": "org.gluu.flow1",
+	"id": "flow1",
+	"displayName": "Sample subflow call",
+	"author": "Jose",
+	"timestamp": 1623373634706,
+	"editable": false,
+	
+	"description": "Sends an input value to flow org.gluu.Flow2 and finishes as the subflow finished",
+	"inputs": [ ]
+	
+}

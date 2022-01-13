@@ -21,8 +21,8 @@ import org.slf4j.LoggerFactory;
 
 public class Visitor {
     
-    public static final String FLOWNAME_XPATH_EXPR = "/flow/header/qname/text()";
-    public static final String FLOWCALL_XPATH_EXPR = "//flow_call/call/qname/text()";
+    //public static final String FLOWNAME_XPATH_EXPR = "/flow/header/qname/text()";
+    public static final String FLOWCALL_XPATH_EXPR = "//flow_call/call/call_subject/qname/text()";
 
     private static final Logger logger = LoggerFactory.getLogger(Visitor.class);
     private static final Set<Integer> INCLUDE_SYMBOLS;

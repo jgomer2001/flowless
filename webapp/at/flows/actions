@@ -1,0 +1,7 @@
+Flow actions
+    Basepath ""	  
+
+l = [ 1, 2, 3, 4 ]
+sum = Call org.gluu.flowless.playground.Utils#myMethod l
+Log "result is" sum
+Finish true
