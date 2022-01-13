@@ -2,8 +2,6 @@
 
 This is a placeholder webapp for the engine flow. There is no actual code here
 
-In practice this app won't exist, see the `README` of engine folder
-
 ## Requisites
 
 Java 11, maven, Jetty 9.4
@@ -12,7 +10,7 @@ Ensure you have `install`ed in your maven local repo the artifact `org.gluu.flow
 
 https://github.com/jgomer2001/flowless/blob/main/engine/src/main/java/org/gluu/flowless/engine/model/EngineConfig.java
 
-you'll have to adjust it beforehand. Change `/home/jgomer/Downloads/jetty/jetty-base` to an already existing location in your computer (ideally an empty folder) and leave the rest (that is, `/at`). 
+you'll have to adjust it beforehand. Change `/home/jgomer/Downloads/jetty/jetty-base` to an already existing location in your computer (ideally an empty folder) and keep the rest (that is, `/at`). 
 
 ## Setup
 
@@ -33,6 +31,7 @@ cd webapps
 ```
 
 copy the file `flowless_web_resources.xml` in the current directory and adjust `resourceBase` accordingly
+
 copy the war file as well, or: `mkdir webapp && cd webapp && jar -xf path_to_war_file` (exploded strategy)
 
 Back to the Jetty base (`cd ..`) copy the `at` folder (it's found alongside this README)
@@ -48,9 +47,9 @@ Inside `at` there is:
 
 Note that `flows` contains files of 3 kinds:
 
-- <flow name> (extensionless): flow's coded in DSL
-- <flow name>.json: flow's metadata
-- <flow name>.js file: flow's transpiled code (only used by the engine, shouldn't be edited or displayed anywhere). See `engine` README to learn more
+- &lt;flow name&gt; (extensionless): flow's coded in DSL
+- &lt;flow name&gt;.json: flow's metadata
+- &lt;flow name&gt;.js file: flow's transpiled code (only used by the engine, shouldn't be edited or displayed anywhere). See `engine` README to learn more
 
 At the top level some default freemarker templates can be found as well as utility JS server-side code. 
 

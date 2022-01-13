@@ -5,7 +5,10 @@ A prototype webapp that helps manage flow assets (flows specification, actions c
 ## Requisites
 
 Java 11, maven, Jetty 9.4
+
 Setting up this app requires an existing Jetty base
+
+Ensure you have `mvn install`ed in your local repo the artifact `org.gluu.flowless:model`.
 
 ## Setup
 

@@ -14,7 +14,7 @@ A high level depiction of the process is:
 
 ## Internals
 
-The engine receives a request (eg. to trigger a flow), locates the relevant JS code and executes it by leveraging a scripting engine (Mozilla Rhino). In practice it's more complicated than that!
+The engine receives a request (eg. to trigger a flow), locates the relevant JS code and executes it by leveraging Mozilla [Rhino](https://github.com/mozilla/rhino/) scripting engine. Of course, it's more complicated than that in practice!
 
 **Key points**:
 

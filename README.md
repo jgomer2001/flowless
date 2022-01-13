@@ -2,4 +2,4 @@
 
 A POC for https://github.com/JanssenProject/jans-auth-server/wiki/Authentication-trees
 
-See `engines`'s README file 
+To start playing with this, click [here](./webapp#webapp) 
