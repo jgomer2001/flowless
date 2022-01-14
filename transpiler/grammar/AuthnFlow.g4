@@ -89,19 +89,19 @@ choice: MATCH WS simple_expr WS TO WS? INDENT option+ DEDENT elseblock? ;
 
 option: simple_expr WS? INDENT statement+ DEDENT ;
 
-ifelse: caseof WS? INDENT statement+ DEDENT elseblock? ;
+ifelse: caseof INDENT statement+ DEDENT elseblock? ;
 
 caseof: WHEN WS boolean_expr boolean_op_expr* ;
 
-boolean_op_expr: WS (AND | OR) WS boolean_expr ;
+boolean_op_expr: NL* (AND | OR) WS? NL* boolean_expr ;
 
-boolean_expr: simple_expr WS IS WS (NOT WS)? simple_expr ;
+boolean_expr: simple_expr WS IS WS (NOT WS)? simple_expr WS? ;
 
 elseblock: OTHERWISE WS? INDENT statement+ DEDENT ;
 
 loop: preassign? REPEAT WS (variable | UINT) WS MAXTIMES WS? INDENT statement+ quit_stmt? DEDENT ;
 
-quit_stmt: QUIT WS caseof WS? NL elseblock? ;
+quit_stmt: QUIT WS caseof NL elseblock? ;
 
 statusr_block: INDENT STATUS_REQ WS? INDENT statusr_allow statusr_reply statusr_until DEDENT DEDENT ;
 
