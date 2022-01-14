@@ -211,6 +211,10 @@ public class FlowService {
         parentFlowData = null;
     }
     
+    public Scriptable getGlobalScope() {
+        return globalScope;
+    }
+    
     private FlowStatus processPause(ContinuationPending pending, FlowStatus currentFlowSt, 
             String flowName) throws FlowCrashException, IOException {
 

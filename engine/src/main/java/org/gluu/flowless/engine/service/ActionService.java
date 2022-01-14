@@ -26,7 +26,6 @@ import org.gluu.flowless.engine.model.EngineConfig;
 import org.mozilla.javascript.NativeJavaMethod;
 import org.slf4j.Logger;
 
-
 @ApplicationScoped
 public class ActionService {
     
@@ -181,8 +180,10 @@ public class ActionService {
             params += ", " + prop;
         }
         
-        Object result = shell.evaluate(methodPath + "(" + params.substring(2) + ")",
-                methodPath + ".java");
+        if (arity > 0) {
+            params = params.substring(2);
+        }
+        Object result = shell.evaluate(methodPath + "(" + params + ")", methodPath + ".java");
         
         //Unset property for an upcoming call
         for (int i = 1; i <= arity; i++) {

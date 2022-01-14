@@ -4,7 +4,7 @@
 
 <h1>An unexpected error ocurred:</h1> 
 
-<p>${message}
+<p>${message!""}
 
 <p>Try again later
 

@@ -18,8 +18,8 @@ function ${flow.@id}<#recurse flow>
 ) {
 const _basePath = ${.node.base.STRING}
 let _it = null, _it2 = null
-<#-- repit is accessible to flow writers (it's not underscore-prefixed). It allows to access the status of loops -->
-let repit = []
+<#-- repIt is accessible to flow writers (it's not underscore-prefixed). It allows to access the status of loops -->
+let repIt = []
 </#macro>
 
 <#macro statement>
@@ -109,9 +109,9 @@ _it = ${.node.variable}
 _ensureNumber(_it, "Number of iterations passed to Repeat is invalid")
 
 <@util_preassign node=.node /> null
-repit.push(0)
+repIt.push(0)
 for (let _times = _it; _times > 0; _times--) {
-    repit[repit.length - 1]++
+    repIt[repIt.length - 1]++
 
     <#list .node.statement as st>
         <#recurse st>
@@ -119,7 +119,7 @@ for (let _times = _it; _times > 0; _times--) {
 
     <#if .node.quit_stmt?size gt 0><#visit .node.quit_stmt></#if>
 }
-_it = repit.pop()
+_it = repIt.pop()
 
 <#if .node.preassign?size gt 0>
 ${.node.preassign.variable} = _it

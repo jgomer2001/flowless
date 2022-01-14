@@ -14,6 +14,8 @@ import org.gluu.util.Pair;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.NativeContinuation;
+import org.mozilla.javascript.NativeJavaMap;
+import org.mozilla.javascript.Scriptable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,7 +104,14 @@ public class ScriptUtils {
     }
     
     public static Object callAction(String actionClassName, String methodName, Object[] params) throws Exception {
-        return managedBean(ActionService.class).callAction(actionClassName, methodName, params);
+        
+        Object value = managedBean(ActionService.class).callAction(actionClassName, methodName, params);
+        if (Map.class.isInstance(value)) {
+            Scriptable scope = managedBean(FlowService.class).getGlobalScope();
+            return new NativeJavaMap(scope, value);
+        }
+        return value;
+        
     }
 
     //Issue a call to this method only if the request scope is active
