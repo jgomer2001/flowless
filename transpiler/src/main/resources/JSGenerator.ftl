@@ -189,13 +189,17 @@ else {
 </#macro>
 
 <#macro util_preassign node>
-<#if node.preassign?size = 0>
-    <#if node.preassign_catch?size gt 0 && node.preassign_catch.variable?size gt 0>
-var ${node.preassign_catch.variable} =
+    <#local var = "" >
+    <#if node.preassign?size = 0>
+        <#if node.preassign_catch?size gt 0 && node.preassign_catch.variable?size gt 0>
+            <#local var = node.preassign_catch.variable >
+        </#if>
+    <#else>
+        <#local var = node.preassign.variable >
     </#if>
-<#else>
-var ${node.preassign.variable} =
-</#if>
+    <#if var?length gt 0>
+<#if var?index_of(".") == -1>var </#if>${var} =
+    </#if> 
 </#macro>
 
 <#macro util_argslist node prefix>
