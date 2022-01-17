@@ -125,7 +125,7 @@ public class Transpiler {
             SyntaxException syntaxException = Stream.of(lexerErrListener, parserErrListener)
                     .map(RecognitionErrorListener::getError).filter(Objects::nonNull)
                     .findFirst().orElse(null);
-            
+
             if (syntaxException != null) {
                 throw syntaxException;
             } else if (!lexer._hitEOF) {
