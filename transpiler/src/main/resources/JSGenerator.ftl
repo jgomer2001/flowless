@@ -198,7 +198,7 @@ else {
         <#local var = node.preassign.variable >
     </#if>
     <#if var?length gt 0>
-<#if var?index_of(".") == -1 || var?index_of("[") == -1>var </#if>${var} =
+<#if var?index_of(".") == -1 && var?index_of("[") == -1>var </#if>${var} =
     </#if> 
 </#macro>
 
