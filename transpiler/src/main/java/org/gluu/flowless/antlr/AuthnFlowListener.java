@@ -18,16 +18,6 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 */
 	void exitFlow(AuthnFlowParser.FlowContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link AuthnFlowParser#qname}.
-	 * @param ctx the parse tree
-	 */
-	void enterQname(AuthnFlowParser.QnameContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link AuthnFlowParser#qname}.
-	 * @param ctx the parse tree
-	 */
-	void exitQname(AuthnFlowParser.QnameContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#header}.
 	 * @param ctx the parse tree
 	 */
@@ -37,6 +27,16 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitHeader(AuthnFlowParser.HeaderContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#qname}.
+	 * @param ctx the parse tree
+	 */
+	void enterQname(AuthnFlowParser.QnameContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#qname}.
+	 * @param ctx the parse tree
+	 */
+	void exitQname(AuthnFlowParser.QnameContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#base}.
 	 * @param ctx the parse tree

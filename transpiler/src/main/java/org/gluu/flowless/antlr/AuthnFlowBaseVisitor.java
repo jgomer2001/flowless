@@ -24,14 +24,14 @@ public class AuthnFlowBaseVisitor<T> extends AbstractParseTreeVisitor<T> impleme
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitQname(AuthnFlowParser.QnameContext ctx) { return visitChildren(ctx); }
+	@Override public T visitHeader(AuthnFlowParser.HeaderContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitHeader(AuthnFlowParser.HeaderContext ctx) { return visitChildren(ctx); }
+	@Override public T visitQname(AuthnFlowParser.QnameContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

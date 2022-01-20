@@ -31,16 +31,16 @@ NL: '\r'? '\n' [\t ]* ;
 
 flow: header statement+ ;
 
-qname: ALPHANUM | DOTEXPR ;
-
 header: FLOWSTART WS qname WS? INDENT base inputs? DEDENT NL* ;
 // header always ends in a NL
+
+qname: ALPHANUM | QNAME ;   //if flow name is a single word, it is not identified as QNAME but ALPHANUM by parser
 
 base: BASE WS STRING WS? NL;
  
 inputs: FLOWINPUTS (WS short_var)+ WS? NL ;
 
-short_var: ALPHANUM ;
+short_var: ALPHANUM ;   //created for convenience for code generator
 
 statement: flow_call | action_call | rrf_call | assignment | log | rfac | finish | ifelse | choice | loop ;
 
@@ -48,7 +48,7 @@ preassign: variable WS? EQ WS? ;
 
 preassign_catch: variable? WS? '|' WS? short_var WS? EQ WS? ;
 
-variable: short_var | IDXEXPR | DOTEXPR | DOTIDXEXPR ;
+variable: short_var | QNAME | DOTEXPR | DOTIDXEXPR ;
 
 flow_call: preassign? FLOWCALL WS call (overrides | NL) ;
 
@@ -63,7 +63,7 @@ log: LOG argument+ WS? NL ;
 
 call: ('$' variable | call_subject) argument* WS? ;
 
-call_subject: qname ('#' ALPHANUM)?  ;
+call_subject: qname ('#' ALPHANUM)? ;
 
 argument: WS simple_expr ;
 
@@ -77,7 +77,7 @@ array_expr: '[' WS? expression* (SPCOMMA expression)* WS? ']' ;
 
 object_expr: '{' WS? keypair* (SPCOMMA keypair)* WS? '}' ;
 
-assignment: preassign expression NL ;
+assignment: preassign expression WS? NL ;
 
 keypair: ALPHANUM WS? ':' WS? expression ;
 
@@ -194,11 +194,15 @@ DECIMAL: (SINT | UINT) '.' UINT ;
 
 ALPHANUM: ALNUM ;
 
-DOTEXPR: ALNUM ('.' ALNUM )+ ;
+QNAME: ALNUM ('.' ALNUM)* ;
 
-IDXEXPR: ALNUM '[' UINT ']' ;
+EVALNUM: '.' ( STRING | ('$'? ALNUM) ) ;
 
-DOTIDXEXPR: ALNUM ('[' UINT ']')? ('.' ALNUM ('[' UINT ']')? )+ ;
+DOTEXPR: ALNUM EVALNUM* ;
+
+IDXEXPR: '[' (UINT | ALNUM) ']' EVALNUM* IDXEXPR? ; 
+
+DOTIDXEXPR: DOTEXPR IDXEXPR ;
 
 SPCOMMA: SPACES? NL* COMMA SPACES? NL* ;
 

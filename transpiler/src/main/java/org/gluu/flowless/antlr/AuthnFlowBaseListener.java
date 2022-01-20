@@ -28,18 +28,6 @@ public class AuthnFlowBaseListener implements AuthnFlowListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterQname(AuthnFlowParser.QnameContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitQname(AuthnFlowParser.QnameContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterHeader(AuthnFlowParser.HeaderContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -47,6 +35,18 @@ public class AuthnFlowBaseListener implements AuthnFlowListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitHeader(AuthnFlowParser.HeaderContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterQname(AuthnFlowParser.QnameContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitQname(AuthnFlowParser.QnameContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

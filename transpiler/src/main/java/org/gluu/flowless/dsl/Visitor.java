@@ -27,7 +27,6 @@ public class Visitor {
     private static final Logger logger = LoggerFactory.getLogger(Visitor.class);
     private static final Set<Integer> INCLUDE_SYMBOLS;
     private static final Set<Integer> RULES_AS_TEXT;
-    private static final Set<String> JS_KEYWORDS;
     
     static {
         Integer[] asText = new Integer[] {
@@ -37,55 +36,27 @@ public class Visitor {
         };
         
         RULES_AS_TEXT = new HashSet(Arrays.asList(asText));
-
+        
+        //Symbols that may be found as leaves in the tree traversal and must not be skipped
         Integer[] includeSymbols = new Integer[] {
             AuthnFlowParser.NOT, AuthnFlowParser.AND, AuthnFlowParser.OR, AuthnFlowParser.MINUS,
             AuthnFlowParser.NUL, AuthnFlowParser.BOOL, AuthnFlowParser.STRING,
             AuthnFlowParser.UINT, AuthnFlowParser.SINT, AuthnFlowParser.DECIMAL,
-            AuthnFlowParser.ALPHANUM, AuthnFlowParser.DOTEXPR, AuthnFlowParser.IDXEXPR, AuthnFlowParser.DOTIDXEXPR
+            AuthnFlowParser.ALPHANUM, AuthnFlowParser.DOTEXPR, AuthnFlowParser.DOTIDXEXPR
         };
         
         INCLUDE_SYMBOLS = new HashSet(Arrays.asList(includeSymbols));
-        
-        //The following cannot be used as variable names in DSL code
-        String[] javascriptKeywords = new String[] {
-            // Based on https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Lexical_grammar#keywords
-            "break", "case", "catch", "class", "const", "continue", 
-            "debugger", "default", "delete", "do", "else", "export", "extends", 
-            "finally", "for", "function", "if", "import", "in", "instanceof", "new", 
-            "return", "super", "switch", "this", "throw", "try", "typeof", 
-            "var", "void", "while", "with", "yield",
-            "enum", "await", "let",
-
-            // Prevent arbitrary access to Java classes from script code, see
-            // http://web.archive.org/web/20210304081342/https://developer.mozilla.org/en-US/docs/Scripting_Java
-            "Packages",
-            
-            // See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects
-            // function names not included because they cannot be invoked from DSL code
-            // Control abstraction objects (except Promise), Reflection, Internationalization, 
-            // and WebAssembly not yet supported in Rhino
-            "Infinity", "NaN", "undefined", "globalThis",
-            "Object", "Function", "Boolean", "Symbol",
-            "Error", "AggregateError", "EvalError", "InternalError", "RangeError",
-            "ReferenceError", "SyntaxError", "TypeError", "URIError",
-            "Number", "BigInt", "Math", "Date", "String", "RegExp",
-            "Array", "Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array",
-            "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array", "BigUint64Array",
-            "Map", "Set", "WeakMap", "WeakSet",
-            "ArrayBuffer", "SharedArrayBuffer", "Atomics", "DataView", "JSON",
-            "Promise", "arguments"
-        };
-        
-        JS_KEYWORDS = new HashSet(Arrays.asList(javascriptKeywords));
-        
     }
     
+    public static SaplingDocument document(ParseTree tree, int ruleIndex, String treeId) {
+        return Saplings.doc().withChild(visitElement(tree, ruleIndex).withAttr("id", treeId));
+    }
+ 
     private static String getRuleName(int ruleIndex) {
         return AuthnFlowParser.ruleNames[ruleIndex];
     }
     
-    public static SaplingElement visitElement(ParseTree tree, int ruleIndex) {
+    private static SaplingElement visitElement(ParseTree tree, int ruleIndex) {
 
         List<SaplingElement> childElements = new ArrayList<>();
         int nchildren = tree.getChildCount();
@@ -100,10 +71,7 @@ public class Visitor {
                 int ind = ruleCtx.getRuleIndex();
                 
                 if (RULES_AS_TEXT.contains(ind)) {
-                    //elem = Saplings.elem(getRuleName(ind)).withText(ruleCtx.getText());
-                    
-                    elem = Saplings.elem(getRuleName(ind))
-                            .withText(descendantsTextWithKeywordsCorrection(child));
+                    elem = Saplings.elem(getRuleName(ind)).withText(makeTextOf(child));
                 } else {
                     elem = visitElement(child, ind);
                 }
@@ -129,61 +97,39 @@ public class Visitor {
 
     }
 
-    private static String descendantsTextWithKeywordsCorrection(ParseTree tree) {
+    private static String makeTextOf(ParseTree tree) {
         
         String text = null;
         if (tree instanceof RuleContext) {
+
             RuleContext ruleCtx = (RuleContext) tree;
             int ind = ruleCtx.getRuleIndex();
+            boolean isShortVar = AuthnFlowParser.RULE_short_var == ind;
 
-            if (AuthnFlowParser.RULE_variable == ind || AuthnFlowParser.RULE_short_var == ind) {
-                text = correctedVariable(ruleCtx.getText());
-            } else {
+            if (!isShortVar) {
                 text = "";
                 for (int i = 0; i < tree.getChildCount(); i++) {
-                    text += descendantsTextWithKeywordsCorrection(tree.getChild(i));
+                    text += makeTextOf(tree.getChild(i));
                 }
+            } else {
+                text = VarsTransformer.correctedVariable(ruleCtx.getText());
             }
+
+            if (AuthnFlowParser.RULE_variable == ind) {
+                text = VarsTransformer.correctedVariable(text);
+            }
+
         } else if (tree instanceof TerminalNode) {
             Token token = ((TerminalNode) tree).getSymbol();
             text = token.getText();
+            int type = token.getType();
+            
+            if (type == AuthnFlowParser.DOTEXPR || type == AuthnFlowParser.DOTIDXEXPR) {
+                text = VarsTransformer.convertToBracketNotation(text);
+            }
         }
         return text;  
                      
     }
 
-    private static String correctedVariable(String variable) {
-
-        int dotIndex = variable.indexOf(".");
-        int rbIndex = variable.indexOf("[");
-        int index;
-        
-        if (dotIndex != -1) {
-            if (rbIndex != -1) {
-                index = Math.min(dotIndex, rbIndex);
-            } else {
-                index = dotIndex;
-            }
-        } else {
-            index = rbIndex;
-        }
-        
-        String identifier =  index == -1 ? variable : variable.substring(0, index);
-        if (JS_KEYWORDS.contains(identifier)) {
-            logger.trace("Renaming variable {}", variable);
-            identifier = "_" + identifier;
-        }
-        return index == -1 ? identifier : identifier + variable.substring(index);
-        
-    }
-    
-    public static SaplingDocument document(ParseTree tree, int ruleIndex, String treeId) {
-        return Saplings.doc().withChild(visitElement(tree, ruleIndex).withAttr("id", treeId));
-    }
-
 }
-//preassign > variable
-//preassign_catch > variable
-//simple_expr > variable
-//simple_expr > MINUS variable
-//expression > simple_expr > ...

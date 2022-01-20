@@ -17,17 +17,17 @@ public interface AuthnFlowVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitFlow(AuthnFlowParser.FlowContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AuthnFlowParser#qname}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitQname(AuthnFlowParser.QnameContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#header}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitHeader(AuthnFlowParser.HeaderContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#qname}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitQname(AuthnFlowParser.QnameContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#base}.
 	 * @param ctx the parse tree
