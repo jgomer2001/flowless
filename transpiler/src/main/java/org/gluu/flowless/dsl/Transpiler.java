@@ -22,7 +22,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.xml.transform.Source;
 
 import net.sf.saxon.dom.NodeOverNodeInfo;
 import net.sf.saxon.s9api.Processor;
@@ -148,11 +147,12 @@ public class Transpiler {
 
     }
 
-    public List<String> getInputs(Source doc) throws SaxonApiException {
+    public List<String> getInputs(SaplingDocument doc) throws SaxonApiException {
         
-        XdmNode node = processor.newDocumentBuilder().build(doc);
-        return xpathCompiler.evaluate("/flow/header/inputs/short_var/text()", node)
+        return xpathCompiler
+                .evaluate("/flow/header/inputs/short_var/text()", doc.toXdmNode(processor))
                     .stream().map(XdmItem::getStringValue).collect(Collectors.toList());
+
     }
     
     public String generateJS(SaplingDocument doc) throws TranspilerException  {
@@ -160,12 +160,12 @@ public class Transpiler {
         try {
             StringWriter sw = new StringWriter();
             NodeModel model = asNodeModel(doc);
+
             jsGenerator.process(model, sw);
             return sw.toString();
         } catch (IOException | TemplateException | SaxonApiException e) {
             throw new TranspilerException("Transformation failed", e);
         }
-
 
     }
 

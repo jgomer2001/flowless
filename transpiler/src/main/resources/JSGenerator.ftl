@@ -5,7 +5,6 @@
 - Any functions called here are implemented in file util.js
 - An initial underscore in variables and function names prevent flow writers to use variables with the same names in their DSL code
 -->
-
 //Generated at ${.now?iso_utc}
 function ${flow.@id}<#recurse flow>
 }
