@@ -358,6 +358,16 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 */
 	void exitLoop(AuthnFlowParser.LoopContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link AuthnFlowParser#loopy}.
+	 * @param ctx the parse tree
+	 */
+	void enterLoopy(AuthnFlowParser.LoopyContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link AuthnFlowParser#loopy}.
+	 * @param ctx the parse tree
+	 */
+	void exitLoopy(AuthnFlowParser.LoopyContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#quit_stmt}.
 	 * @param ctx the parse tree
 	 */

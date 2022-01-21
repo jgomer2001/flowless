@@ -1,3 +1,4 @@
+// Whenever this file is edited, Class org.gluu.flowless.dsl.Transpiler and its dependants MUST BE reviewed
 grammar AuthnFlow;
 
 /*
@@ -42,7 +43,7 @@ inputs: FLOWINPUTS (WS short_var)+ WS? NL ;
 
 short_var: ALPHANUM ;   //created for convenience for code generator
 
-statement: flow_call | action_call | rrf_call | assignment | log | rfac | finish | ifelse | choice | loop ;
+statement: flow_call | action_call | rrf_call | assignment | log | rfac | finish | ifelse | choice | loop | loopy ;
 
 preassign: variable WS? EQ WS? ;
 
@@ -99,7 +100,9 @@ boolean_expr: simple_expr WS IS WS (NOT WS)? simple_expr WS? ;
 
 elseblock: OTHERWISE WS? INDENT statement+ DEDENT ;
 
-loop: preassign? REPEAT WS (variable | UINT) WS MAXTIMES WS? INDENT statement+ quit_stmt? DEDENT ;
+loop: preassign? ITERATE WS variable WS USE WS short_var INDENT statement+ quit_stmt? DEDENT ;
+
+loopy: preassign? REPEAT WS (variable | UINT) WS MAXTIMES WS? INDENT statement+ quit_stmt? DEDENT ;
 
 quit_stmt: QUIT WS caseof NL elseblock? ;
 
@@ -153,6 +156,8 @@ OTHERWISE: 'Otherwise' ;
 
 REPEAT: 'Repeat' ;
 
+ITERATE: 'Iterate over' ;
+
 MATCH: 'Match' ;
 
 QUIT: 'Quit' ;
@@ -174,6 +179,8 @@ SECS: 'seconds' ;
 TO: 'to' ;
 
 MAXTIMES: 'times max' ;
+
+USE: 'using' ;
 
 EQ: '=' ;
 
@@ -200,9 +207,7 @@ EVALNUM: '.' ( STRING | ('$'? ALNUM) ) ;
 
 DOTEXPR: ALNUM EVALNUM* ;
 
-IDXEXPR: '[' (UINT | ALNUM) ']' EVALNUM* IDXEXPR? ; 
-
-DOTIDXEXPR: DOTEXPR IDXEXPR ;
+DOTIDXEXPR: DOTEXPR ('[' (UINT | ALNUM) ']' EVALNUM*)+ ;
 
 SPCOMMA: SPACES? NL* COMMA SPACES? NL* ;
 

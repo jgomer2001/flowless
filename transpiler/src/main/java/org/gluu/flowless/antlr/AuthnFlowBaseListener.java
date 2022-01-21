@@ -436,6 +436,18 @@ public class AuthnFlowBaseListener implements AuthnFlowListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterLoopy(AuthnFlowParser.LoopyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitLoopy(AuthnFlowParser.LoopyContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterQuit_stmt(AuthnFlowParser.Quit_stmtContext ctx) { }
 	/**
 	 * {@inheritDoc}

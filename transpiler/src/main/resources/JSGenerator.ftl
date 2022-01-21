@@ -17,8 +17,8 @@ function ${flow.@id}<#recurse flow>
 ) {
 const _basePath = ${.node.base.STRING}
 let _it = null, _it2 = null
-<#-- repIt is accessible to flow writers (it's not underscore-prefixed). It allows to access the status of loops -->
-let repIt = []
+<#-- idx is accessible to flow writers (it's not underscore-prefixed). It allows to access the status of loops -->
+let idx = [], _items = []
 </#macro>
 
 <#macro statement>
@@ -99,7 +99,7 @@ _flowCall(_basePath, <@util_url_overrides node=.node.overrides/>, <#visit .node.
 return _finish(_it)
 </#macro>
 
-<#macro loop>
+<#macro loopy>
     <#if .node.variable?size = 0>
 _it = ${.node.UINT}
     <#else>
@@ -107,21 +107,36 @@ _it = ${.node.variable}
     </#if>
 _ensureNumber(_it, "Number of iterations passed to Repeat is invalid")
 
-<@util_preassign node=.node /> null
-repIt.push(0)
+idx.push(0)
 for (let _times = _it; _times > 0; _times--) {
-    repIt[repIt.length - 1]++
-
-    <#list .node.statement as st>
-        <#recurse st>
-    </#list>
-
-    <#if .node.quit_stmt?size gt 0><#visit .node.quit_stmt></#if>
+    idx[idx.length - 1]++
+<@util_loop_body node=.node />
 }
-_it = repIt.pop()
+_it = idx.pop()
 
 <#if .node.preassign?size gt 0>
-${.node.preassign.variable} = _it
+<@util_preassign node=.node /> _it
+</#if>
+
+</#macro>
+
+<#macro loop>
+_it = ${.node.variable}
+if (_isMap(_it)) _it = Object.keys(_it)
+else _ensureList(_it, "Variable to iterate over is not map or list")
+
+_items.push(_it)
+idx.push(0)
+for (let _item of _items[_items.length - 1]) {
+    idx[idx.length - 1]++
+    var ${.node.short_var} = _item
+<@util_loop_body node=.node />
+}
+_items.pop()
+_it = idx.pop()
+
+<#if .node.preassign?size gt 0>
+<@util_preassign node=.node /> _it
 </#if>
 
 </#macro>
@@ -177,6 +192,14 @@ _log(<@util_argslist node=.node prefix="" />)
 _allowStatusRequest(${isuint?then(.node.statusr_allow.UINT!"", .node.statusr_allow.variable!"")},
     "${.node.statusr_until.boolean_expr.simple_expr[0]!""}", "${.node.statusr_until.boolean_expr.simple_expr[1]!""}",
     ${isequality?c}, [<#recurse .node.statusr_reply>])
+</#macro>
+
+<#macro util_loop_body node>
+    <#list .node.statement as st>
+        <#recurse st>
+    </#list>
+
+    <#if .node.quit_stmt?size gt 0><#visit .node.quit_stmt></#if>
 </#macro>
 
 <#macro util_else node>

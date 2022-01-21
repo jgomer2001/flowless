@@ -6,7 +6,8 @@ let
     _numberCls = new Packages.java.lang.Class.forName("java.lang.Number"),
     _integerCls = new Packages.java.lang.Class.forName("java.lang.Integer"),
     _stringCls = new Packages.java.lang.Class.forName("java.lang.String"),
-    _listCls = new Packages.java.lang.Class.forName("java.util.List")
+    _listCls = new Packages.java.lang.Class.forName("java.util.List"),
+    _mapCls = new Packages.java.lang.Class.forName("java.util.Map")
 
 function _renderReplyFetch(base, page, allowCallbackResume, data) {
     if (_isObject(data))
@@ -125,19 +126,21 @@ function _ic(val, symbol) {
 
 function _isObject(val, javaish) {
 
-    if (_isNil(val)) return false
-
     let jish = _isNil(javaish) ? _javaish(val) : javaish
-    if (jish)
-        return !(_stringCls.isInstance(val) || _primitiveUtils.isPrimitive(val.getClass(), true)
-            || val.getClass().isArray())
-    return !Array.isArray(val) && typeof val === "object"
+    if (jish) {
+        let cls = val.getClass()
+        return !(_stringCls.isInstance(val) || _primitiveUtils.isPrimitive(cls, true) || cls.isArray())
+    }
+    return !_isNil(val) && !Array.isArray(val) && typeof val === "object"
 
 }
 
+function _isMap(val, javaish) {
+    let jish = _isNil(javaish) ? _javaish(val) : javaish
+    return jish ? _mapCls.isInstance(val) : _isObject(val, false)
+}
+
 function _isList(val, javaish) {
-    
-    if (_isNil(val)) return false
 
     let jish = _isNil(javaish) ? _javaish(val) : javaish
     if (jish) {
@@ -149,29 +152,20 @@ function _isList(val, javaish) {
 }
 
 function _isBool(val, javaish) {
-
-    if (_isNil(val)) return false
-
     let jish = _isNil(javaish) ? _javaish(val) : javaish
     return jish ? _booleanCls.isInstance(val) : typeof val === "boolean"
-
 }
 
 function _isString(val, javaish) {
-
-    if (_isNil(val)) return false
-
     let jish = _isNil(javaish) ? _javaish(val) : javaish
     return jish ? _stringCls.isInstance(val) : typeof val === "string"
-
 }
 
 function _isNumber(val, javaish) {
 
-    if (_isNil(val)) return false
-
     let jish = _isNil(javaish) ? _javaish(val) : javaish
     if (jish)
+        //Only Double/Float/Long/Integer/Short objects 
         return _numberCls.isInstance(val) && _primitiveUtils.isPrimitive(val.getClass(), true) 
     return typeof val === "number" && !isNaN(val)
 
@@ -186,9 +180,9 @@ function _javaish(val) {
 
     try {
         val.getClass()
-        //Instances of org.mozilla.javascript.NativeArray/org.mozilla.javascript.NativeObject throw TypeError in the above line
+        //Instances of org.mozilla.javascript.NativeArray/NativeObject throw TypeError in the above line
         //as well as native boolean/string/array/object defined in Javascript code
-        //plus null (whether from Java or JS)
+        //plus null
         return true
     } catch (e) {
         return false

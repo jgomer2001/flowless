@@ -221,6 +221,12 @@ public interface AuthnFlowVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitLoop(AuthnFlowParser.LoopContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link AuthnFlowParser#loopy}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitLoopy(AuthnFlowParser.LoopyContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#quit_stmt}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
