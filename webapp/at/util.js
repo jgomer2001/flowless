@@ -4,7 +4,9 @@ let
     _logUtils = Packages.org.gluu.flowless.engine.script.LogUtils,
     _booleanCls = new Packages.java.lang.Class.forName("java.lang.Boolean"),
     _numberCls = new Packages.java.lang.Class.forName("java.lang.Number"),
-    _stringCls = new Packages.java.lang.Class.forName("java.lang.String")
+    _integerCls = new Packages.java.lang.Class.forName("java.lang.Integer"),
+    _stringCls = new Packages.java.lang.Class.forName("java.lang.String"),
+    _listCls = new Packages.java.lang.Class.forName("java.util.List")
 
 function _renderReplyFetch(base, page, allowCallbackResume, data) {
     if (_isObject(data))
@@ -94,7 +96,31 @@ function _abort(data) {
 }
 
 function _ensureNumber(val, msg) {
-    if (!_isNumber(val)) throw new Error(msg)
+    if (!_isNumber(val)) throw new TypeError(msg)
+}
+
+function _ensureList(val, msg) {
+    if (!_isList(val)) throw new TypeError(msg)
+}
+
+//Ensures val is a string and returns it
+//(short function name used so generated code is compact)
+function _sc(val, symbol) {
+    if (_isString(val)) return val
+    throw new TypeError(symbol + " is not a string")
+}
+
+//Ensures val is an integer (greater than or equal to 0) and returns it
+//(short function name used so generated code is compact)
+function _ic(val, symbol) {
+    if (!_isNil(val)) {
+        if (_javaish(val)) {
+            if (_integerCls.isInstance(val))
+                return val
+        } else if (Number.isInteger(val))
+            return val
+    }
+    throw new TypeError(symbol + " is not zero or a positive integer")
 }
 
 function _isObject(val, javaish) {
@@ -106,6 +132,19 @@ function _isObject(val, javaish) {
         return !(_stringCls.isInstance(val) || _primitiveUtils.isPrimitive(val.getClass(), true)
             || val.getClass().isArray())
     return !Array.isArray(val) && typeof val === "object"
+
+}
+
+function _isList(val, javaish) {
+    
+    if (_isNil(val)) return false
+
+    let jish = _isNil(javaish) ? _javaish(val) : javaish
+    if (jish) {
+        let cls = val.getClass()
+        return cls.isArray() || _listCls.isAssignableFrom(cls)
+    }
+    return Array.isArray(val)
 
 }
 
