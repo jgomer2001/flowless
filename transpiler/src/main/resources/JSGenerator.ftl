@@ -109,8 +109,8 @@ _ensureNumber(_it, "Number of iterations passed to Repeat is invalid")
 
 idx.push(0)
 for (let _times = _it; _times > 0; _times--) {
-    idx[idx.length - 1]++
 <@util_loop_body node=.node />
+    idx[idx.length - 1]++
 }
 _it = idx.pop()
 
@@ -128,9 +128,9 @@ else _ensureList(_it, "Variable to iterate over is not map or list")
 _items.push(_it)
 idx.push(0)
 for (let _item of _items[_items.length - 1]) {
-    idx[idx.length - 1]++
     var ${.node.short_var} = _item
 <@util_loop_body node=.node />
+    idx[idx.length - 1]++
 }
 _items.pop()
 _it = idx.pop()
@@ -152,7 +152,10 @@ if (<#recurse .node.caseof>) {
 
 <#macro quit_stmt>
 if (<#recurse .node.caseof>) break
-<@util_else node=.node.elseblock />
+
+<#list .node.statement as st>
+    <#recurse st>
+</#list>
 </#macro>
 
 <#macro choice>

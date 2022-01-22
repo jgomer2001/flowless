@@ -23,7 +23,6 @@ import javax.inject.Inject;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.gluu.flowless.engine.misc.PrimitiveUtils;
 import org.gluu.flowless.engine.model.EngineConfig;
-import org.mozilla.javascript.NativeJavaMethod;
 import org.slf4j.Logger;
 
 @ApplicationScoped
@@ -139,9 +138,6 @@ public class ActionService {
                     javaArgs[i] = arg;
 
                 } else mismatchError(argClass, typeName);
-
-            } else if (argClass.equals(NativeJavaMethod.class)) {
-                throw new IllegalArgumentException("Java methods not allowed as arguments in Java calls");
 
             } else {
                 //argClass should be NativeArray or NativeObject if the value was not created/derived

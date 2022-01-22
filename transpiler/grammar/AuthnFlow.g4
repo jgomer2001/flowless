@@ -104,7 +104,7 @@ loop: preassign? ITERATE WS variable WS USE WS short_var INDENT statement+ quit_
 
 loopy: preassign? REPEAT WS (variable | UINT) WS MAXTIMES WS? INDENT statement+ quit_stmt? DEDENT ;
 
-quit_stmt: QUIT WS caseof NL elseblock? ;
+quit_stmt: QUIT WS caseof NL statement* ;
 
 statusr_block: INDENT STATUS_REQ WS? INDENT statusr_allow statusr_reply statusr_until DEDENT DEDENT ;
 
@@ -207,7 +207,7 @@ EVALNUM: '.' ( STRING | ('$'? ALNUM) ) ;
 
 DOTEXPR: ALNUM EVALNUM* ;
 
-DOTIDXEXPR: DOTEXPR ('[' (UINT | ALNUM) ']' EVALNUM*)+ ;
+DOTIDXEXPR: DOTEXPR ('[' SPACES? (UINT | ALNUM) SPACES? ']' EVALNUM*)+ ;
 
 SPCOMMA: SPACES? NL* COMMA SPACES? NL* ;
 

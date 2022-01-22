@@ -19,7 +19,7 @@ The engine receives a request (eg. to trigger a flow), locates the relevant JS c
 **Key points**:
 
 - Code runs in the JVM all the time
-- No dependencies on 3rd party javascript libraries. Generated code is (plain) vanilla javascript as well as the utility file which is ~4KB
+- No dependencies on 3rd party javascript libraries. Generated code is (plain) vanilla javascript as well as the utility file which is ~6KB
 - There is no usage of asynchronous paradigms at all (no events, callbacks, extra threads, etc.). It remains in the classic request/response Java servlet lifecycle
 
 The key driver for engine design was that of [continuations](https://en.wikipedia.org/wiki/Continuation) (not to be confused with [Jetty continuations](https://www.eclipse.org/jetty/documentation/jetty-9/index.html#continuations)). With continuations we can express a flow as if it were a straight sequence despite there are pauses in the middle: those gaps between an HTTP response and the next request. 

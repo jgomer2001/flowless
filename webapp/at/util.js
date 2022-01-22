@@ -24,11 +24,11 @@ function _redirectFetchAtCallback(url) {
 }
 
 function _log() {
-    _logUtils.log(Array.from(arguments))
+    _logUtils.log(Array.from(arguments).map(_scan))
 }
 
 function _equals(a, b) {
-    return _scriptUtils.testEquality(a, b)
+    return _scriptUtils.testEquality(_scan(a), _scan(b))
 }
 
 function _actionCall() {
@@ -53,7 +53,7 @@ function _actionCall() {
     
     if (method === "") throw new Error("Missing action method");
 
-    return _scriptUtils.callAction(act[0], method, args.map(x => _isNil(x) ? null : x))
+    return _scriptUtils.callAction(act[0], method, args.map(_scan))
 
 }
 
@@ -72,7 +72,7 @@ function _flowCall() {
         throw new TypeError("Flow name is not a string")
     
     let f = _scriptUtils.prepareSubflow(removed[2], removed[0], removed[1])    
-    let result = f.apply(null, args.map(x => _isNil(x) ? null : x))
+    let result = f.apply(null, args.map(_scan))
     
     _scriptUtils.closeSubflow()
     return result
@@ -96,6 +96,12 @@ function _abort(data) {
     return { aborted: true, data: data }
 }
 
+function _scan(val) {
+    //treat undefined, null, or a Java method reference as null
+    if (_isNil(val) || typeof val === "function") return null    
+    return val
+}
+
 function _ensureNumber(val, msg) {
     if (!_isNumber(val)) throw new TypeError(msg)
 }
@@ -114,14 +120,15 @@ function _sc(val, symbol) {
 //Ensures val is an integer (greater than or equal to 0) and returns it
 //(short function name used so generated code is compact)
 function _ic(val, symbol) {
-    if (!_isNil(val)) {
-        if (_javaish(val)) {
-            if (_integerCls.isInstance(val))
-                return val
-        } else if (Number.isInteger(val))
+
+    if (_javaish(val)) {
+        if (_integerCls.isInstance(val) && val >= 0)
             return val
-    }
+    } else if (Number.isInteger(val) && val >= 0)
+        return val
+
     throw new TypeError(symbol + " is not zero or a positive integer")
+
 }
 
 function _isObject(val, javaish) {
