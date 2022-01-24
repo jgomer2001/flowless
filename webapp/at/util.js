@@ -106,8 +106,10 @@ function _ensureNumber(val, msg) {
     if (!_isNumber(val)) throw new TypeError(msg)
 }
 
-function _ensureList(val, msg) {
-    if (!_isList(val)) throw new TypeError(msg)
+function _iterable(val, msg) {
+    if (_isMap(val)) return Object.keys(val)
+    if (_isList(val) || _isString(val)) return val
+    throw new TypeError(msg)
 }
 
 //Ensures val is a string and returns it
@@ -172,7 +174,7 @@ function _isNumber(val, javaish) {
 
     let jish = _isNil(javaish) ? _javaish(val) : javaish
     if (jish)
-        //Only Double/Float/Long/Integer/Short objects 
+        //Only Double/Float/Long/Integer/Short/Byte objects 
         return _numberCls.isInstance(val) && _primitiveUtils.isPrimitive(val.getClass(), true) 
     return typeof val === "number" && !isNaN(val)
 

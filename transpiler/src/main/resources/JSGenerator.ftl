@@ -121,9 +121,7 @@ _it = idx.pop()
 </#macro>
 
 <#macro loop>
-_it = ${.node.variable}
-if (_isMap(_it)) _it = Object.keys(_it)
-else _ensureList(_it, "Variable to iterate over is not map or list")
+_it = _iterable(${.node.variable}, "Variable to iterate over is not map, list, or string")
 
 _items.push(_it)
 idx.push(0)
