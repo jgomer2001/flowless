@@ -122,7 +122,7 @@ public class ActionService {
                     
                 } else mismatchError(argClass, typeName);
                 
-            } else if (argClass.equals(String.class)) {
+            } else if (CharSequence.class.isAssignableFrom(argClass)) {
 
                 primCompat = PrimitiveUtils.compatible(Character.class, paramType);
 
@@ -133,7 +133,7 @@ public class ActionService {
                     logger.trace("Parameter is a " + typeName);
                     javaArgs[i] = arg.toString().charAt(0);
 
-                } else if (paramType.equals(String.class)) {
+                } else if (paramType.isAssignableFrom(argClass)) {
                     logger.trace("Parameter is a " + typeName);
                     javaArgs[i] = arg;
 

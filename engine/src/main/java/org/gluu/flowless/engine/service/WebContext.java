@@ -9,7 +9,7 @@ import org.gluu.flowless.engine.servlet.RestartServlet;
 
 @RequestScoped
 public class WebContext {
-    
+
     @Inject
     private HttpServletRequest request;
     
@@ -31,6 +31,18 @@ public class WebContext {
 
     public String getRpFlowInitiatorUrl() {
         return rpFlowInitiatorUrl;
+    }
+    
+    public String getRequestUrl() {
+        
+        String queryString = request.getQueryString();
+        if (queryString == null) {
+            queryString = "";
+        } else {
+            queryString = "?" + queryString;
+        }
+        return request.getRequestURL().toString() + queryString;
+
     }
 
     public void setRpFlowInitiatorUrl(String rpFlowInitiatorUrl) {

@@ -36,6 +36,7 @@ import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.ContinuationPending;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.NativeContinuation;
+import org.mozilla.javascript.NativeJavaMap;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.RhinoException;
 import org.mozilla.javascript.Scriptable;
@@ -85,7 +86,6 @@ public class FlowService {
             //retrieve the flow, execute until render/redirect is reached
             Flow fl = getFlowObject(flowName);
             String funcName = fl.getId();
-            Object[] params = getFlowParams(fl.getInputs(), strParams);
             
             String baseCode = FlowUtils.fread(EngineConfig.ROOT_DIR, JS_UTIL);
             String flowCodeFileName = flowName + SCRIPT_SUFFIX;
@@ -103,6 +103,8 @@ public class FlowService {
 
                 logger.info("Executing function {}", funcName);
                 Function f = (Function) globalScope.get(funcName, globalScope);
+
+                Object[] params = getFlowParams(fl.getInputs(), strParams);
                 NativeObject result = (NativeObject) scriptCtx.callFunctionWithContinuations(f, globalScope, params);
                 
                 status = new FlowStatus();
@@ -118,8 +120,6 @@ public class FlowService {
             }
             
             //TODO: review exception handling, enable polling if needed
-        } catch (JsonProcessingException e) {
-            throw new FlowCrashException(e.getMessage(), e);
         } catch (IOException ie) {
             throw new FlowCrashException(ie.getMessage(), ie);
         }  
@@ -302,10 +302,17 @@ public class FlowService {
         }
         for (int i = 0; i < params.length; i++) {
             String input = inputs.get(i);
+
             if (params[i] == null) {
-                logger.warn("Setting parameter '{}' to null", input);
+                logger.warn("Setting parameter '{}' to null", input);                
             } else {
-                logger.debug("Setting parameter {} to an instance of {}", input, params[i].getClass().getName());
+                logger.debug("Setting parameter '{}' to an instance of {}", input, params[i].getClass().getName());
+
+                if (Map.class.isInstance(params[i])) {
+                    //This helps prevent exception "Invalid JavaScript value of type java.util.LinkedHashMap"
+                    //when typeof is applied over this param
+                    params[i] = new NativeJavaMap(globalScope, params[i]);
+                }
             }
         }
         return params;
