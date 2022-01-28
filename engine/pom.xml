@@ -109,11 +109,6 @@
         </dependency>
         
         <!-- GLUU -->
-	<!--dependency>
-            <groupId>org.gluu</groupId>
-            <artifactId>oxcore-cdi</artifactId>
-            <version>4.3.0.Final</version>
-	</dependency-->
 	<dependency>
             <groupId>org.gluu</groupId>
             <artifactId>oxcore-util</artifactId>

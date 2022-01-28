@@ -1,6 +1,7 @@
 package org.gluu.flowless.engine.script;
 
 import java.lang.reflect.Array;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -8,11 +9,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
-import javax.enterprise.inject.spi.CDI;
 
 import org.gluu.flowless.engine.model.EngineConfig;
 import org.gluu.util.Pair;
-import org.mozilla.javascript.NativeObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,9 +20,8 @@ public class LogUtils {
     private static final Logger LOG = LoggerFactory.getLogger(LogUtils.class);
     //MUST be a single character string
     private static final String PLACEHOLDER = "%";
-    
-    //TODO: use oxcore-util
-    private static final int MAX_ITERABLE_ITEMS = CDI.current().select(EngineConfig.class).get()
+
+    private static final int MAX_ITERABLE_ITEMS = ScriptUtils.managedBean(EngineConfig.class)
             .getMaxItemsLoggedInCollections();
     
     private enum LogLevel { 
@@ -161,17 +159,18 @@ public class LogUtils {
     private static String asString(Object obj) {
         
         if (obj == null) return "null";
+        Class<?> objCls = obj.getClass();
         
         //JS-native numeric values always come as doubles; make them look like integers if that's the case
-        if (obj.getClass().equals(Double.class)) {
+        if (objCls.equals(Double.class)) {
             Double d = (Double) obj;
             if (Math.floor(d) == d && d >= 1.0*Long.MIN_VALUE && d <= 1.0*Long.MAX_VALUE) {
                 return Long.toString(d.longValue());
             }
-        } else if (obj.getClass().isArray()) {
+        } else if (objCls.isArray()) {
             
             List<Object> list = new ArrayList<>();
-            for (int i = 0; i < MAX_ITERABLE_ITEMS; i++) {
+            for (int i = 0; i <= MAX_ITERABLE_ITEMS; i++) { //Allows one extra element
                 try {
                     list.add(Array.get(obj, i));
                 } catch (ArrayIndexOutOfBoundsException e) {
@@ -183,10 +182,21 @@ public class LogUtils {
         } else if (Collection.class.isInstance(obj)) {
             return subCollectionAsString((Collection) obj);  
             
-        } else if (NativeObject.class.isInstance(obj)) {
-            //TODO: not working
-            //Avoid the undesirable [object Object] JS way of printing objects
-            return ((Map) obj).toString();
+        } else if (Map.class.isInstance(obj)) {
+            
+            Map map = (Map) obj;
+            List<AbstractMap.SimpleImmutableEntry> entries = new ArrayList<>();
+            int i = 0;
+
+            for (Object key : map.keySet()) {                
+                entries.add(new AbstractMap.SimpleImmutableEntry(key, map.get(key)));
+                if (++i > MAX_ITERABLE_ITEMS) break; //Allows one extra element
+            }
+            return subCollectionAsString(entries);
+            
+        } else if (Map.Entry.class.isInstance(obj)) {
+            Map.Entry e = (Map.Entry) obj;
+            return String.format("(%s: %s)", asString(e.getKey()), asString(e.getValue()));
         }
         return obj.toString();
 

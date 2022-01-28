@@ -43,7 +43,10 @@ public class ScriptUtils {
         }
 
     }
-    
+
+    // NOTE: do not alter this method's signature so that it returns void. The returned 
+    // value is simulated when the continuation is resumed: see 3rd parameter in call
+    // to resumeContinuation (FlowService)    
     public static Pair<Boolean, String> pauseForExternalRedirect(String url) throws PendingRedirectException {
         
         Context cx = Context.enter();
@@ -106,10 +109,11 @@ public class ScriptUtils {
     public static Object callAction(String actionClassName, String methodName, Object[] params) throws Exception {
         
         Object value = managedBean(ActionService.class).callAction(actionClassName, methodName, params);
-        if (Map.class.isInstance(value)) {
-            Scriptable scope = managedBean(FlowService.class).getGlobalScope();
-            return new NativeJavaMap(scope, value);
-        }
+        //TODO: remove?
+        //if (Map.class.isInstance(value) && !NativeJavaMap.class.equals(value.getClass())) {
+        //    Scriptable scope = managedBean(FlowService.class).getGlobalScope();
+        //    return new NativeJavaMap(scope, value);
+        //}
         return value;
         
     }
@@ -133,7 +137,7 @@ public class ScriptUtils {
         
     }
     
-    private static <T> T managedBean(Class<T> cls) {
+    public static <T> T managedBean(Class<T> cls) {
         return CDI.current().select(cls).get();
     }
 

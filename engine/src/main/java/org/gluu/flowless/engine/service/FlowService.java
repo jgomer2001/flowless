@@ -36,6 +36,7 @@ import org.mozilla.javascript.ContextFactory;
 import org.mozilla.javascript.ContinuationPending;
 import org.mozilla.javascript.Function;
 import org.mozilla.javascript.NativeContinuation;
+import org.mozilla.javascript.NativeJavaList;
 import org.mozilla.javascript.NativeJavaMap;
 import org.mozilla.javascript.NativeObject;
 import org.mozilla.javascript.RhinoException;
@@ -211,9 +212,10 @@ public class FlowService {
         parentFlowData = null;
     }
     
-    public Scriptable getGlobalScope() {
-        return globalScope;
-    }
+    //TODO: remove?
+    //public Scriptable getGlobalScope() {
+    //    return globalScope;
+    //}
     
     private FlowStatus processPause(ContinuationPending pending, FlowStatus currentFlowSt, 
             String flowName) throws FlowCrashException, IOException {
@@ -308,10 +310,12 @@ public class FlowService {
             } else {
                 logger.debug("Setting parameter '{}' to an instance of {}", input, params[i].getClass().getName());
 
+                //This helps prevent exception "Invalid JavaScript value of type ..."
+                //when typeof is applied over this param
                 if (Map.class.isInstance(params[i])) {
-                    //This helps prevent exception "Invalid JavaScript value of type java.util.LinkedHashMap"
-                    //when typeof is applied over this param
                     params[i] = new NativeJavaMap(globalScope, params[i]);
+                } else if (List.class.isInstance(params[i])) {
+                    params[i] = new NativeJavaList(globalScope, params[i]);                    
                 }
             }
         }

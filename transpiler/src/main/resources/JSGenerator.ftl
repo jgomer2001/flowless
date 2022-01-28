@@ -39,7 +39,9 @@ let idx = [], _items = []
     </#if>
 
     _it = _renderReplyFetch(_basePath, ${.node.STRING}, ${hasbool?then(.node.BOOL, "false")}, _it)
-    <#-- See FlowService#continueFlow > scriptCtx#resumeContinuation -->
+    <#-- See FlowService#continueFlow > scriptCtx#resumeContinuation
+    string parsing via JS was preferred over returning a Java Map directly because it feels more
+    natural for RRF to return a native JS object; it creates the illusion there was no Java involved -->
     _it2 = JSON.parse(_it.second)
     if (_it.first.booleanValue()) return _abort(_it2)
 

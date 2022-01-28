@@ -109,7 +109,7 @@ public class FlowUtils {
         }
         
         //TODO: implement a smarter serialization? example: 
-        // if key starts with prefix i: try to convert to int, b: for boolean, etc.
+        // if key starts with prefix i: try to convert to int, b: for boolean, m: map, etc.
         return MAPPER.writeValueAsString(result);
     }
     
