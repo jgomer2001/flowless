@@ -1,5 +1,8 @@
 package org.gluu.flowless.engine.script;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.reflect.Array;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -197,6 +200,18 @@ public class LogUtils {
         } else if (Map.Entry.class.isInstance(obj)) {
             Map.Entry e = (Map.Entry) obj;
             return String.format("(%s: %s)", asString(e.getKey()), asString(e.getValue()));
+            
+        } else if (Throwable.class.isInstance(obj)) {
+            Throwable t = (Throwable) obj;
+            try(
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw)) {
+                
+                t.printStackTrace(pw);
+                return sw.toString();
+            } catch(IOException e) {
+                //can be ignored
+            }
         }
         return obj.toString();
 

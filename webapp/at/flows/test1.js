@@ -1,9 +1,8 @@
-//Generated at 2022-01-13T13:05:29Z
 function main_test1(
 ) {
 const _basePath = "t1"
 let _it = null, _it2 = null
-let lit = []
+let idx = [], _items = []
     
         _it = {}
 
@@ -17,8 +16,7 @@ let lit = []
     _it2 = null
 var name =
  data.name
-_log("Hey", name
-)
+_log([ "Hey", name ])
 var params =
  { nick: name, 
     instruments: [ "piano", "bass guitar", "electric guitar", "drums" ]}
@@ -43,8 +41,7 @@ _equals(name, "jose")
 return _finish(_it)
 }
 else {
-_log("Bye, bye", name
-)
+_log([ "Bye, bye", name ])
 var output =
  { success: false, error: "We decided not to let you in ☺, period." }
     _it = output

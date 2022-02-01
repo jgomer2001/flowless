@@ -57,7 +57,18 @@ let idx = [], _items = []
     <#if catch>
 try {
     </#if>
-    <@util_preassign node=.node /> _actionCall(<#visit .node.call>)
+    <@util_preassign node=.node /> _actionCall(
+    <#if .node.static_call?size gt 0>
+        null, false, "${.node.static_call.qname}"
+        <#visit .node.static_call.method_call>
+    <#elseif .node.oo_call?size == 0>
+        null, false, ${.node.dyn_static_call.variable}
+        <#visit .node.dyn_static_call.method_call>
+    <#else>
+        ${.node.oo_call.variable}, true, null
+        <#visit .node.oo_call.method_call>
+    </#if>    
+    )
 
     <#if catch>
 } catch (_e) {
@@ -66,20 +77,16 @@ try {
     </#if>
 </#macro>
 
+<#macro method_call>, "${.node.ALPHANUM}", <@util_argslist node=.node /></#macro>
+
 <#macro flow_call>
+    <#if .node.variable?size gt 0>
+        it = ${.node.variable}
+    <#else>
+        it = "${.node.qname}"
+    </#if>
     <@util_preassign node=.node />
-_flowCall(_basePath, <@util_url_overrides node=.node.overrides/>, <#visit .node.call>)
-</#macro>
-
-<#macro call>
-
-<#if .node.variable?size gt 0>
-    ${.node.variable}, null
-<#else>
-    "${.node.call_subject.qname}", "<#if .node.call_subject.ALPHANUM?size gt 0>${.node.call_subject.ALPHANUM}</#if>"
-</#if>
-
-<@util_argslist node=.node prefix=", " />
+_flowCall(it, _basePath, <@util_url_overrides node=.node.overrides/>, <@util_argslist node=.node />)
 </#macro>
 
 <#macro rfac>
@@ -89,7 +96,6 @@ _flowCall(_basePath, <@util_url_overrides node=.node.overrides/>, <#visit .node.
     _it = ${.node.variable}
 </#if>
     <@util_preassign node=.node /> _redirectFetchAtCallback(_it)
-    _it = null
 </#macro>
 
 <#macro finish>
@@ -185,16 +191,16 @@ _equals(${.node.simple_expr[0]}, ${.node.simple_expr[1]})
 </#macro>
 
 <#macro log>
-_log(<@util_argslist node=.node prefix="" />)
+_log(<@util_argslist node=.node />)
 </#macro>
 
 <#macro statusr_block>
     <#local isuint = .node.statusr_allow.variable?size = 0>
     <#local isequality = statusr_until.boolean_expr.NOT?size gt 0>
-
+<#--
 _allowStatusRequest(${isuint?then(.node.statusr_allow.UINT!"", .node.statusr_allow.variable!"")},
     "${.node.statusr_until.boolean_expr.simple_expr[0]!""}", "${.node.statusr_until.boolean_expr.simple_expr[1]!""}",
-    ${isequality?c}, [<#recurse .node.statusr_reply>])
+    ${isequality?c}, [<#recurse .node.statusr_reply>]) -->
 </#macro>
 
 <#macro util_loop_body node>
@@ -227,12 +233,8 @@ else {
     </#if> 
 </#macro>
 
-<#macro util_argslist node prefix>
-<#if node.argument.simple_expr?size gt 0>${prefix}</#if>${node.argument.simple_expr?join(", ")}
-</#macro>
+<#macro util_argslist node>[ ${node.argument.simple_expr?join(", ")} ]</#macro>
 
-<#macro util_url_overrides node>
-[${node.STRING?join(", ")}]
-</#macro>
+<#macro util_url_overrides node>[ ${node.STRING?join(", ")} ]</#macro>
 
 <#macro @element></#macro>

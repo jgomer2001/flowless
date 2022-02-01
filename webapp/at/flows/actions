@@ -2,6 +2,21 @@ Flow actions
     Basepath ""	  
 
 l = [ 1, 2, 3, 4 ]
-sum = Call org.gluu.flowless.playground.Utils#myMethod l
+sum = Call org.gluu.flowless.Utils#myMethod l
 Log "result is" sum
+
+small = Call java.util.Collections#min l
+Log "min element is" small
+
+name = "org.gluu.flowless.Utils"
+sum = Call $name#myMethod l
+Log "result is" sum
+
+str = Call org.gluu.flowless.Utils#aString
+len = Call str length
+Log "len is %" len
+
+char = Call str charAt 3
+Log "4th char is" char
+
 Finish true

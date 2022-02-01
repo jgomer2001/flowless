@@ -1,10 +1,9 @@
-//Generated at 2022-01-13T13:10:12Z
 function flow2(
     val
 ) {
 const _basePath = "f1"
 let _it = null, _it2 = null
-let lit = []
+let idx = [], _items = []
 var x =
  {value: val}
     
@@ -21,8 +20,7 @@ var x =
 if (    
 _equals(data.something, "")
 ) {
-_log("There was a missing value"
-)
+_log([ "There was a missing value" ])
 var ret =
  { success: false, error: "You forgot something!" }
     _it = ret

@@ -51,20 +51,24 @@ preassign_catch: variable? WS? '|' WS? short_var WS? EQ WS? ;
 
 variable: short_var | QNAME | DOTEXPR | DOTIDXEXPR ;
 
-flow_call: preassign? FLOWCALL WS call (overrides | NL) ;
+flow_call: preassign? FLOWCALL WS ('$' variable | qname) argument* WS? (overrides | NL) ;
 
 overrides: INDENT OVERRIDE WS STRING (WS STRING)* WS? NL DEDENT ;
 //I don't get why the NL is needed above
 
-action_call: (preassign | preassign_catch)? ACTIONCALL WS call NL ;
+action_call: (preassign | preassign_catch)? ACTIONCALL WS (dyn_static_call | static_call | oo_call) WS? NL ;
 
 rrf_call: preassign? RRFCALL WS STRING (WS variable)? (WS BOOL)? WS? (statusr_block | NL) ;
 
 log: LOG argument+ WS? NL ;
 
-call: ('$' variable | call_subject) argument* WS? ;
+static_call: qname '#' method_call ;
 
-call_subject: qname ('#' ALPHANUM)? ;
+dyn_static_call: '$' variable '#' method_call ;
+
+oo_call: variable WS method_call ;
+
+method_call: ALPHANUM argument* ;
 
 argument: WS simple_expr ;
 
@@ -110,7 +114,7 @@ statusr_block: INDENT STATUS_REQ WS? INDENT statusr_allow statusr_reply statusr_
 
 statusr_allow: ALLOW WS (variable | UINT) WS SECS WS? NL;
 
-statusr_reply: REPLY WS call NL ;
+statusr_reply: REPLY WS (dyn_static_call | static_call) WS? NL ;
 
 statusr_until: UNTIL WS boolean_expr WS? NL;
 

@@ -11,7 +11,7 @@ import org.gluu.util.Pair;
 
 public class EngineConfig {
 
-    public static final String ROOT_DIR = "/home/jgomer/Downloads/jetty/jetty-base/at";
+    public static final String ROOT_DIR = System.getProperty("base");
     public static final String SCRIPTS_DIR = EngineConfig.ROOT_DIR + File.separator + "scripts";
     
     private int maxItemsLoggedInCollections = 3;

@@ -1,0 +1,3 @@
+{"className":"org.gluu.flowless.Utils","methodName":"myMethod","arity":1,"author":"Jose","language":"java","timestamp":1642022097530,
+"name":{"displayName":"Sumation","description":"Takes a list of integers and compute the sum of its elements"},
+"inputs":[{"displayName":"elements","description":"A non empty list"}],"returnsVoid":false,"output":"Sumation","customProps":null}

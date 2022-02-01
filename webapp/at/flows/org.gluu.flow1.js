@@ -1,9 +1,9 @@
-//Generated at 2022-01-13T13:09:00Z
+//Generated at 2022-02-01T16:27:18Z
 function flow1(
 ) {
 const _basePath = "f1"
 let _it = null, _it2 = null
-let lit = []
+let idx = [], _items = []
     
         _it = {}
 
@@ -15,15 +15,10 @@ let lit = []
  _it2
     _it = null
     _it2 = null
+        it = "org.gluu.flow2"
 var data =
-_flowCall(_basePath, []
-, 
-    "org.gluu.flow2", ""
-
-, data.secret[0]
-)
-_log("@debug Subflow finished successfully?", data.success
-)
+_flowCall(it, _basePath, [  ], [ data.secret[_ic(0, "0")] ])
+_log([ "@debug Subflow finished successfully?", data.success ])
     _it = data
 return _finish(_it)
 

@@ -196,25 +196,49 @@ public class AuthnFlowBaseListener implements AuthnFlowListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterCall(AuthnFlowParser.CallContext ctx) { }
+	@Override public void enterStatic_call(AuthnFlowParser.Static_callContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitCall(AuthnFlowParser.CallContext ctx) { }
+	@Override public void exitStatic_call(AuthnFlowParser.Static_callContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterCall_subject(AuthnFlowParser.Call_subjectContext ctx) { }
+	@Override public void enterDyn_static_call(AuthnFlowParser.Dyn_static_callContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void exitCall_subject(AuthnFlowParser.Call_subjectContext ctx) { }
+	@Override public void exitDyn_static_call(AuthnFlowParser.Dyn_static_callContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterOo_call(AuthnFlowParser.Oo_callContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitOo_call(AuthnFlowParser.Oo_callContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterMethod_call(AuthnFlowParser.Method_callContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitMethod_call(AuthnFlowParser.Method_callContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

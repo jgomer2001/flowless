@@ -6,11 +6,7 @@ This is a placeholder webapp for the engine flow. There is no actual code here
 
 Java 11, maven, Jetty 9.4
 
-Ensure you have `install`ed in your maven local repo the artifact `org.gluu.flowless:engine`. The corresponding Java project is in the `engine` folder. However, since "base folder" is hardcoded here:
-
-https://github.com/jgomer2001/flowless/blob/main/engine/src/main/java/org/gluu/flowless/engine/model/EngineConfig.java
-
-you'll have to adjust it beforehand. Change `/home/jgomer/Downloads/jetty/jetty-base` to an already existing location in your computer (ideally an empty folder) and keep the rest (that is, `/at`). 
+Ensure you have `mvn install`ed in your maven local repo the artifact `org.gluu.flowless:model`. The corresponding Java project is in the `model` folder. The same goes for `org.gluu.flowless:engine`.
 
 ## Setup
 
@@ -20,9 +16,9 @@ Adjust to suit your needs:
 
 `export JETTY_HOME=~/Downloads/jetty/jetty-distribution-9.4.35.v20201120` (the path where jetty is installed)
 
-`cd <value of EngineConfig.ROOT_DIR>/..`
+Designate an existing directory (let's call it `"at"`) where relevant engine assets will reside (more on this below), for example: `~/Downloads/jetty/jetty-base/at`.
 
-Then
+Switch to a directory where a jetty base can be created and do:
 
 ```
 java -jar $JETTY_HOME/start.jar --create-startd
@@ -34,7 +30,7 @@ copy the file `flowless_web_resources.xml` in the current directory and adjust `
 
 copy the war file as well, or: `mkdir webapp && cd webapp && jar -xf path_to_war_file` (exploded strategy)
 
-Back to the Jetty base (`cd ..`) copy the `at` folder (it's found alongside this README)
+Copy the contents of `at` folder (found alongside this README file) to your local `at`.
 
 ## Dissecting "at" directory
 
@@ -61,7 +57,7 @@ Read the `playground` README for instructions.
 
 ## Play
 
-`java -jar $JETTY_HOME/start.jar`
+`java -Dbase=/path/to/your/at/folder... -jar $JETTY_HOME/start.jar`
 
 Visit the playground app, say `http://localhost:8080/playground/` and have fun
 

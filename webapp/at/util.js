@@ -18,62 +18,41 @@ function _renderReplyFetch(base, page, allowCallbackResume, data) {
 function _redirectFetchAtCallback(url) {
     if (_isString(url)) {
         let jsonStr = _scriptUtils.pauseForExternalRedirect(url).second
+        //string parsing via JS was preferred over returning a Java Map directly because it feels more
+        //natural for RRF to return a native JS object; it creates the illusion there was no Java involved
         return JSON.parse(jsonStr)
     }
     throw new TypeError("Data passed to RFAC was not a string")
 }
 
-function _log() {
-    _logUtils.log(Array.from(arguments).map(_scan))
+function _log(args) {
+    _logUtils.log(args.map(_scan))
 }
 
 function _equals(a, b) {
     return _scriptUtils.testEquality(_scan(a), _scan(b))
 }
 
-function _actionCall() {
-    // See JSGenerator.ftl
-    //1st arg: action classname
-    //2nd arg: action method name
-    //3rd: array of action params
-    
-    let args = Array.from(arguments)
-    let act = args.splice(0, 2)
-    let method = act[1]
+function _actionCall(instance, instanceRequired, clsName, method, args) {
 
-    if (!_isString(act[0]))
-        throw new TypeError("Action class and method name are not strings")
-    
-    if (_isNil(method)) {
-        //Extract method from act[0]
-        
-        let parts = act[0].split("#", 3)
-        method = parts.length == 2 ? parts[1] : ""
+    if (instanceRequired) {
+        if (_isNil(instance))
+            throw new TypeError("Cannot call method " + method + " of null")
+    } else {
+        if (!_isString(clsName)) throw new TypeError("Action class name is not a string. Target name is " + method)
     }
-    
-    if (method === "") throw new Error("Missing action method");
-
-    return _scriptUtils.callAction(act[0], method, args.map(_scan))
+    return _scriptUtils.callAction(instance, clsName, method, args.map(_scan))
 
 }
 
-function _flowCall() {
-    // See JSGenerator.ftl
-    //1st arg: parent's base path 
-    //2nd: array of url overrides
-    //3rd: name of the flow to branch to
-    //4th: reserved for future use
-    //rest: the params for the flow call
-    
-    let args = Array.from(arguments)
-    let removed = args.splice(0, 4)
+function _flowCall(flowName, basePath, urlOverrides, args) {
 
-    if (!_isString(removed[2]))
+    if (!_isString(flowName))
         throw new TypeError("Flow name is not a string")
-    
-    let f = _scriptUtils.prepareSubflow(removed[2], removed[0], removed[1])    
+
+    let f = _scriptUtils.prepareSubflow(flowName, basePath, urlOverrides)    
     let result = f.apply(null, args.map(_scan))
-    
+
     _scriptUtils.closeSubflow()
     return result
 
