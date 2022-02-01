@@ -67,8 +67,8 @@ public class ActionService {
         
         BiPredicate<Executable, Boolean> pr = (e, staticRequired) -> {
             int mod = e.getModifiers();
-            return e.getParameterCount() == arity && e.getName().equals(methodName)
-                    && Modifier.isPublic(mod) && (staticRequired ? Modifier.isStatic(mod) : true);
+            return e.getParameterCount() == arity && Modifier.isPublic(mod) && 
+                    (staticRequired ? Modifier.isStatic(mod) : true);
         };
         
         //Search for a method/constructor matching name and arity
@@ -85,13 +85,13 @@ public class ActionService {
 
             logger.debug("Constructor found");
             Object[] args = getArgsForCall(constr, arity, rhinoArgs);
-            
+
             logger.debug("Creating an instance");
             return constr.newInstance(args);
         }
 
         Method javaMethod = Stream.of(actionCls.getDeclaredMethods()).filter(m -> pr.test(m, noInst))
-                .findFirst().orElse(null);
+                .filter(m -> m.getName().equals(methodName)).findFirst().orElse(null);
 
         if (javaMethod == null) {
             String msg = String.format("Unable to find a method called %s with arity %d in class %s",
