@@ -107,23 +107,11 @@ public interface AuthnFlowVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitStatic_call(AuthnFlowParser.Static_callContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link AuthnFlowParser#dyn_static_call}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitDyn_static_call(AuthnFlowParser.Dyn_static_callContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#oo_call}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitOo_call(AuthnFlowParser.Oo_callContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link AuthnFlowParser#method_call}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitMethod_call(AuthnFlowParser.Method_callContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link AuthnFlowParser#argument}.
 	 * @param ctx the parse tree

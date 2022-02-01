@@ -59,14 +59,11 @@ try {
     </#if>
     <@util_preassign node=.node /> _actionCall(
     <#if .node.static_call?size gt 0>
-        null, false, "${.node.static_call.qname}"
-        <#visit .node.static_call.method_call>
-    <#elseif .node.oo_call?size == 0>
-        null, false, ${.node.dyn_static_call.variable}
-        <#visit .node.dyn_static_call.method_call>
+        null, false, "${.node.static_call.qname}", "${.node.static_call.ALPHANUM}"
+        , <@util_argslist node=.node.static_call />
     <#else>
-        ${.node.oo_call.variable}, true, null
-        <#visit .node.oo_call.method_call>
+        ${.node.oo_call.variable}, true, null, "${.node.oo_call.ALPHANUM}"
+        , <@util_argslist node=.node.oo_call />
     </#if>    
     )
 
@@ -76,8 +73,6 @@ try {
 }
     </#if>
 </#macro>
-
-<#macro method_call>, "${.node.ALPHANUM}", <@util_argslist node=.node /></#macro>
 
 <#macro flow_call>
     <#if .node.variable?size gt 0>

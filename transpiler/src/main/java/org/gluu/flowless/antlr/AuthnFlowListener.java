@@ -168,16 +168,6 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 */
 	void exitStatic_call(AuthnFlowParser.Static_callContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link AuthnFlowParser#dyn_static_call}.
-	 * @param ctx the parse tree
-	 */
-	void enterDyn_static_call(AuthnFlowParser.Dyn_static_callContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link AuthnFlowParser#dyn_static_call}.
-	 * @param ctx the parse tree
-	 */
-	void exitDyn_static_call(AuthnFlowParser.Dyn_static_callContext ctx);
-	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#oo_call}.
 	 * @param ctx the parse tree
 	 */
@@ -187,16 +177,6 @@ public interface AuthnFlowListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	void exitOo_call(AuthnFlowParser.Oo_callContext ctx);
-	/**
-	 * Enter a parse tree produced by {@link AuthnFlowParser#method_call}.
-	 * @param ctx the parse tree
-	 */
-	void enterMethod_call(AuthnFlowParser.Method_callContext ctx);
-	/**
-	 * Exit a parse tree produced by {@link AuthnFlowParser#method_call}.
-	 * @param ctx the parse tree
-	 */
-	void exitMethod_call(AuthnFlowParser.Method_callContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link AuthnFlowParser#argument}.
 	 * @param ctx the parse tree

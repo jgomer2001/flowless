@@ -208,18 +208,6 @@ public class AuthnFlowBaseListener implements AuthnFlowListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
-	@Override public void enterDyn_static_call(AuthnFlowParser.Dyn_static_callContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitDyn_static_call(AuthnFlowParser.Dyn_static_callContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
 	@Override public void enterOo_call(AuthnFlowParser.Oo_callContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -227,18 +215,6 @@ public class AuthnFlowBaseListener implements AuthnFlowListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitOo_call(AuthnFlowParser.Oo_callContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void enterMethod_call(AuthnFlowParser.Method_callContext ctx) { }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation does nothing.</p>
-	 */
-	@Override public void exitMethod_call(AuthnFlowParser.Method_callContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *

@@ -34,15 +34,9 @@ function _equals(a, b) {
 }
 
 function _actionCall(instance, instanceRequired, clsName, method, args) {
-
-    if (instanceRequired) {
-        if (_isNil(instance))
-            throw new TypeError("Cannot call method " + method + " of null")
-    } else {
-        if (!_isString(clsName)) throw new TypeError("Action class name is not a string. Target name is " + method)
-    }
+    if (instanceRequired && _isNil(instance))
+        throw new TypeError("Cannot call method " + method + " of null")
     return _scriptUtils.callAction(instance, clsName, method, args.map(_scan))
-
 }
 
 function _flowCall(flowName, basePath, urlOverrides, args) {
