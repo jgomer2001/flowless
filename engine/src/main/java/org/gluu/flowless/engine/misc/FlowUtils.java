@@ -3,11 +3,7 @@ package org.gluu.flowless.engine.misc;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -18,9 +14,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.enterprise.inject.spi.CDI;
 
 import org.gluu.flowless.engine.model.EngineConfig;
 import org.gluu.flowless.engine.model.FlowStatus;
+import org.gluu.flowless.engine.serialize.ContinuationSerializer;
 import org.gluu.util.Pair;
 import org.mozilla.javascript.NativeContinuation;
 import org.mozilla.javascript.Scriptable;
@@ -33,6 +31,8 @@ public class FlowUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(FlowUtils.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
+    //TODO: use oxcore
+    private static final ContinuationSerializer CONT_SER = CDI.current().select(ContinuationSerializer.class).get();
 
     public static String encode(String name) {
         return Base64.getUrlEncoder().encodeToString(name.getBytes(UTF_8));
@@ -49,21 +49,13 @@ public class FlowUtils {
     
     public static void saveState(String sessionId, FlowStatus fst, NativeContinuation continuation,
             Scriptable scope) throws IOException {
-        
-        try (
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                //ScriptableOutputStream sos = new ScriptableOutputStream(baos, scope);
-                ObjectOutputStream sos = new ObjectOutputStream(baos)) {
-            
-            sos.writeObject(scope);
-            sos.writeObject(continuation);
 
-            LOG.debug("Continuation serialized, saving...");
-            persistContinuation(sessionId, baos.toByteArray());
-            
-            LOG.debug("Saving status of current flow");
-            persistFlowStatus(sessionId, fst);
-        }
+        byte[] bytes = CONT_SER.save(scope, continuation);
+        LOG.debug("Continuation serialized, saving...");
+        persistContinuation(sessionId, bytes);
+
+        LOG.debug("Saving status of current flow");
+        persistFlowStatus(sessionId, fst);
         
     }
     
@@ -75,19 +67,8 @@ public class FlowUtils {
         
         LOG.debug("Restoring continuation data...");
         byte[] bytes = Files.readAllBytes(path);
-        Pair<Scriptable, NativeContinuation> p = new Pair<>();
-        try (
-                ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-                //ScriptableInputStream sis = new ScriptableInputStream(bais, scope);
-                ObjectInputStream sis = new ObjectInputStream(bais)) {
-            
-            p.setFirst((Scriptable) sis.readObject());
-            p.setSecond((NativeContinuation) sis.readObject());
-        } catch (Exception e) {
-            LOG.error("An error occurred while deserializing the continuation");
-            throw new IOException(e);
-        }
-        return p;
+
+        return CONT_SER.restore(bytes);
 
     }
 
@@ -114,13 +95,15 @@ public class FlowUtils {
     }
     
     private static void persistContinuation(String sid, byte[] data) throws IOException {
-        //TODO: use gluu persistence here        
+        //TODO: use gluu persistence here, if serialization is disabled (see SerializationConfig)
+        //use an in-memory expiring map
         Files.write(continuationPath(sid), data);
         LOG.info("{} bytes written", data.length);
     }
     
     public static void persistFlowStatus(String sid, FlowStatus fst) throws IOException {
-        //TODO: use gluu persistence here. See if "working  params" are encoded somehow
+        //TODO: use gluu persistence here, if serialization is disabled (see SerializationConfig)
+        //use an in-memory expiring map
         MAPPER.writeValue(flowStatusPath(sid).toFile(), fst);
     }
     

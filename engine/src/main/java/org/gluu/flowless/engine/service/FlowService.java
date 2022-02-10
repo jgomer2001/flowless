@@ -377,7 +377,6 @@ public class FlowService {
         
         scriptCtx = new FlowlessContextFactory().enterContext();
         sessionId = request.getSession().getId();
-
     }
 
     @PreDestroy

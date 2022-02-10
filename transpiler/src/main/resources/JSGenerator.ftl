@@ -76,12 +76,12 @@ try {
 
 <#macro flow_call>
     <#if .node.variable?size gt 0>
-        it = ${.node.variable}
+        _it = ${.node.variable}
     <#else>
-        it = "${.node.qname}"
+        _it = "${.node.qname}"
     </#if>
     <@util_preassign node=.node />
-_flowCall(it, _basePath, <@util_url_overrides node=.node.overrides/>, <@util_argslist node=.node />)
+_flowCall(_it, _basePath, <@util_url_overrides node=.node.overrides/>, <@util_argslist node=.node />)
 </#macro>
 
 <#macro rfac>

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import groovy.lang.GroovyClassLoader;
 import groovy.util.GroovyScriptEngine;
 import groovy.util.ResourceException;
 
@@ -37,6 +38,7 @@ public class ActionService {
     
     private GroovyScriptEngine gse;
     private ObjectMapper mapper;
+    private GroovyClassLoader loader;
     
     public Object callAction(Object instance, String className, String methodName, Object[] rhinoArgs)
             throws Exception {
@@ -51,6 +53,7 @@ public class ActionService {
 
             try {
                 //logger.info("Using current classloader to load class " + className);
+                //Try the fastest lookup first
                 actionCls = Class.forName(className);
             } catch (ClassNotFoundException e) {
                 try {
@@ -90,8 +93,9 @@ public class ActionService {
             return constr.newInstance(args);
         }
 
-        Method javaMethod = Stream.of(actionCls.getDeclaredMethods()).filter(m -> pr.test(m, noInst))
-                .filter(m -> m.getName().equals(methodName)).findFirst().orElse(null);
+        Method javaMethod = Stream.of(actionCls.getDeclaredMethods())
+                .filter(m -> m.getName().equals(methodName)).filter(m -> pr.test(m, noInst))
+                .findFirst().orElse(null);
 
         if (javaMethod == null) {
             String msg = String.format("Unable to find a method called %s with arity %d in class %s",
@@ -100,7 +104,7 @@ public class ActionService {
             throw new NoSuchMethodException(msg);
         }
 
-        logger.debug("Found method " + methodName);        
+        logger.debug("Found method {}", methodName);        
         Object[] args = getArgsForCall(javaMethod, arity, rhinoArgs);
 
         logger.debug("Performing method call");
@@ -118,7 +122,7 @@ public class ActionService {
             Object arg = arguments[++i];
             Class<?> paramType = p.getType();
             String typeName = paramType.getName();
-            logger.debug("Examining argument at index " + i);
+            logger.debug("Examining argument at index {}", i);
             
             if (arg == null) {
                 logger.debug("Value is null");
@@ -129,7 +133,7 @@ public class ActionService {
             }
             if (typeName.equals(Object.class.getName())) {
                 //This parameter can receive anything :(
-                logger.trace("Parameter is a " + typeName);
+                logger.trace("Parameter is a {}", typeName);
                 javaArgs[i] = arg;
                 continue;
             }
@@ -141,7 +145,7 @@ public class ActionService {
             if (primCompat != null) {
 
                 if (primCompat) {
-                    logger.trace("Parameter is a primitive (or wrapped) " + typeName);
+                    logger.trace("Parameter is a primitive (or wrapped) {}", typeName);
                     javaArgs[i] = arg;
 
                 } else if (argClass.equals(Double.class)) {
@@ -149,7 +153,7 @@ public class ActionService {
                     Object number = PrimitiveUtils.primitiveNumberFrom((Double) arg, paramType);
                     
                     if (number != null) {
-                        logger.trace("Parameter is a primitive (or wrapped) " + typeName);
+                        logger.trace("Parameter is a primitive (or wrapped) {}", typeName);
                         javaArgs[i] = number;
                         
                     } else mismatchError(argClass, typeName);
@@ -164,11 +168,11 @@ public class ActionService {
                     int len = arg.toString().length();
                     if (len == 0 || len > 1) mismatchError(argClass, typeName);
 
-                    logger.trace("Parameter is a " + typeName);
+                    logger.trace("Parameter is a {}", typeName);
                     javaArgs[i] = arg.toString().charAt(0);
 
                 } else if (paramType.isAssignableFrom(argClass)) {
-                    logger.trace("Parameter is a " + typeName);
+                    logger.trace("Parameter is a {}", typeName);
                     javaArgs[i] = arg;
 
                 } else mismatchError(argClass, typeName);
@@ -188,11 +192,15 @@ public class ActionService {
                     JavaType javaType = mapper.getTypeFactory().constructType(parameterizedType);
                     javaArgs[i] = mapper.convertValue(arguments[i], javaType);
                 }
-                logger.trace("Parameter is a " + ptypeName);
+                logger.trace("Parameter is a {}", ptypeName);
             }
         }
         return javaArgs;
         
+    }
+    
+    public GroovyClassLoader getClassLoader() {
+        return loader;
     }
     
     private void mismatchError(Class<?> argClass, String typeName) throws IllegalArgumentException {
@@ -200,10 +208,10 @@ public class ActionService {
     }
     
     @PostConstruct
-    private void init() throws MalformedURLException {
+    private void init() throws MalformedURLException, ClassNotFoundException {
         
         URL url = new URL("file://" + EngineConfig.SCRIPTS_DIR + "/");
-        logger.debug("Creating a Groovy Script Engine based at " + url.toString());
+        logger.debug("Creating a Groovy Script Engine based at {}", url.toString());
         
         gse = new GroovyScriptEngine(new URL[]{ url });
         /*
@@ -215,7 +223,8 @@ public class ActionService {
         //Set it so change takes effect
         gse.setConfig(cc);
         */
-        gse.getGroovyClassLoader().setShouldRecompile(true);
+        loader = gse.getGroovyClassLoader();
+        loader.setShouldRecompile(true);
 
         mapper = new ObjectMapper();
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);

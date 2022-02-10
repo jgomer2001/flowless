@@ -17,8 +17,10 @@ public class EngineConfig {
     private int maxItemsLoggedInCollections = 3;
     private int interruptionTime = 90;
     
+    private SerializationConfig serializationConf = new SerializationConfig();
+
     private String pageMismatchErrorPage = "mismatch.ftl";
-    private String interruptionErrorPage = "timeout.ftl";  
+    private String interruptionErrorPage = "timeout.ftl";
     private String crashErrorPage = "crash.ftl";
     private String finishedFlowPage = "finished.ftl";
     
@@ -31,6 +33,14 @@ public class EngineConfig {
     
     public String getJsonErrorPage(String page) {
         return "json_"+ page;
+    }
+
+    public SerializationConfig getSerializationConf() {
+        return serializationConf;
+    }
+
+    public void setSerializationConf(SerializationConfig serializationConf) {
+        this.serializationConf = serializationConf;
     }
     
     public int getInterruptionTime() {
