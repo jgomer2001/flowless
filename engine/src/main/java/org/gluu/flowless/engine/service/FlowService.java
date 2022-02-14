@@ -148,7 +148,8 @@ public class FlowService {
             try {
                 ensureTimeNotExceeded(currentFlowSt);
 
-                Pair<Scriptable, NativeContinuation> pcont = FlowUtils.getContinuation(sessionId);
+                Pair<Scriptable, NativeContinuation> pcont =
+                        FlowUtils.getContinuation(sessionId, currentFlowSt.getContinuationHash());
                 globalScope = pcont.getFirst();
                 FlowUtils.printScopeIds(globalScope);
 

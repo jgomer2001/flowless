@@ -11,8 +11,11 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.gluu.flowless.engine.model.EngineConfig;
 import org.gluu.util.Pair;
 import org.slf4j.Logger;
@@ -28,11 +31,13 @@ public class LogUtils {
             .getMaxItemsLoggedInCollections();
     
     private enum LogLevel { 
+        //Names must match those of org.apache.logging.log4j.Level
         ERROR, WARN, INFO, DEBUG, TRACE;
         
         String getValue() {
             return toString().toLowerCase();
-        } 
+        }
+
     }
     
     /**
@@ -41,7 +46,7 @@ public class LogUtils {
      */
     public static void log(Object ...rest) {
     
-        LogLevel level = null;
+        LogLevel level;
         int dummyArgs = 0;
         String sfirst;
         int nargs = rest.length - 1;
@@ -50,25 +55,28 @@ public class LogUtils {
         if (first != null && first instanceof String) {
             Pair<LogLevel, String> p = getLogLevel(first.toString());
             level = p.getFirst();
+
+            if (ignoreLogStatement(level)) return;
             
             Pair<String, Integer> q = getFormatString(p.getSecond(), nargs);
             sfirst = q.getFirst();
             dummyArgs = q.getSecond();
             
         } else {
+            level = LogLevel.INFO;
+            
+            if (ignoreLogStatement(level)) return;
+            
             sfirst = asString(first) + getFormatString("", nargs).getFirst();
         }
-        
+
         Object[] args = new String[nargs + dummyArgs];
         for (int i = 0; i < nargs; i++) {
             args[i] = asString(rest[i + 1]);
         }
         Arrays.fill(args, nargs, args.length, "");
         String result = String.format(sfirst, args);
-        
-        if (level == null) {
-            level = LogLevel.INFO;
-        }
+
         switch (level) {
             case ERROR:
                 LOG.error(result);
@@ -87,6 +95,23 @@ public class LogUtils {
                 break;
         }
         
+    }
+
+    //TODO: integrate to auth-server. In practice the current log level of server should be used
+    //instead of resorting to loggercontext usage
+    private static Level getAppLogLevel() {
+        LoggerContext loggerContext = LoggerContext.getContext(false);
+        return loggerContext.getConfiguration().getLoggerConfig("org.gluu.flowless").getLevel();
+    }
+    
+    private static boolean ignoreLogStatement(LogLevel logLevel) {
+        Level appLevel = Optional.ofNullable(getAppLogLevel()).orElse(Level.INFO);
+        Level level = Level.getLevel(logLevel.toString());
+        return level.intLevel() > appLevel.intLevel();
+        
+        //A log request of level p in a logger with level q is enabled if p <= q. 
+        //Levels are ordered: ALL > DEBUG > INFO > WARN > ERROR > FATAL > OFF.
+        //OFF < FATAL < ERROR < WARN < INFO < DEBUG < ALL
     }
     
     private static Pair<LogLevel, String> getLogLevel(String first) {
@@ -112,6 +137,7 @@ public class LogUtils {
         
         if (level == null) {
             newFirst = first;
+            level = LogLevel.INFO;
         }
         return new Pair<>(level, newFirst);
                 

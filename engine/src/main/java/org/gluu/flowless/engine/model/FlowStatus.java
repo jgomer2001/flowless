@@ -3,7 +3,6 @@ package org.gluu.flowless.engine.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.util.LinkedList;
-import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 public class FlowStatus {
@@ -15,6 +14,7 @@ public class FlowStatus {
     private LinkedList<ParentFlowData> parentsData = new LinkedList<>();
     private String externalRedirectUrl;
     private boolean allowCallbackResume;
+    private String continuationHash;
     
     private FlowResult result;
 
@@ -80,6 +80,14 @@ public class FlowStatus {
 
     public void setParentsData(LinkedList<ParentFlowData> parentsData) {
         this.parentsData = parentsData;
+    }
+
+    public String getContinuationHash() {
+        return continuationHash;
+    }
+
+    public void setContinuationHash(String continuationHash) {
+        this.continuationHash = continuationHash;
     }
 
 }

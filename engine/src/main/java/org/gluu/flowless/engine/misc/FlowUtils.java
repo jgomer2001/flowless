@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import org.apache.commons.codec.digest.DigestUtils;
 
 public class FlowUtils {
 
@@ -54,12 +55,14 @@ public class FlowUtils {
         LOG.debug("Continuation serialized, saving...");
         persistContinuation(sessionId, bytes);
 
+        //TODO: use sha-1 + stringencrypter
+        fst.setContinuationHash(DigestUtils.sha256Hex(bytes));
         LOG.debug("Saving status of current flow");
         persistFlowStatus(sessionId, fst);
         
     }
     
-    public static Pair<Scriptable, NativeContinuation> getContinuation(String sid)
+    public static Pair<Scriptable, NativeContinuation> getContinuation(String sid, String contHash)
             throws IOException {
 
         Path path = continuationPath(sid);
@@ -67,6 +70,10 @@ public class FlowUtils {
         
         LOG.debug("Restoring continuation data...");
         byte[] bytes = Files.readAllBytes(path);
+        
+        //TODO: use sha-1 + stringencrypter
+        if (!DigestUtils.sha256Hex(bytes).equals(contHash))
+            throw new IOException("Serialized continuation has been altered");
 
         return CONT_SER.restore(bytes);
 

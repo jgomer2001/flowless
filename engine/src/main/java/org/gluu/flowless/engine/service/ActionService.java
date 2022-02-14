@@ -185,6 +185,10 @@ public class ActionService {
                 String ptypeName = parameterizedType.getTypeName();
                 
                 if (ptypeName.equals(argClassName)) {
+                    //This branch will be taken mostly when there is no type information in the parameter
+                    //(method signature). For instance: String[], List, MyBean (no parameterized type info). 
+                    //Due to type erasure argClassName won't contain any type information. As an example, 
+                    //if arg is a List<String>, argClassName will just be like java.util.ArrayList 
                     javaArgs[i] = arg;
                 } else {
                     logger.warn("Trying to parse argument of class {} to {}", argClassName, ptypeName);
