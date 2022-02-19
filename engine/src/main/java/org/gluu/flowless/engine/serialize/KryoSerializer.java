@@ -59,6 +59,7 @@ public class KryoSerializer implements ObjectSerializer {
                 kryo.setRegistrationRequired(false);
                 kryo.setReferences(true);
                 kryo.setClassLoader(actionService.getClassLoader());
+                kryo.setOptimizedGenerics(false);
                 return kryo;
             }
             
